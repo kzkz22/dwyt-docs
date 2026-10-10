@@ -1,0 +1,258 @@
+{
+  "$defs": {
+    "SegmentIn": {
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "number"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Speaker"
+        },
+        "text": {
+          "maxLength": 20000,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "text"
+      ],
+      "title": "SegmentIn",
+      "type": "object"
+    },
+    "SpeakerIn": {
+      "properties": {
+        "label": {
+          "maxLength": 100,
+          "title": "Label",
+          "type": "string"
+        },
+        "share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Share"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "SpeakerIn",
+      "type": "object"
+    },
+    "TranscriptIn": {
+      "properties": {
+        "mode": {
+          "enum": [
+            "captions",
+            "cloud",
+            "local"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "caption_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "manual",
+                "auto"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption Kind"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "diarized": {
+          "default": false,
+          "title": "Diarized",
+          "type": "boolean"
+        },
+        "speakers": {
+          "items": {
+            "$ref": "#/$defs/SpeakerIn"
+          },
+          "maxItems": 100,
+          "title": "Speakers",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Warnings",
+          "type": "array"
+        },
+        "cloud": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cloud"
+        },
+        "elapsed_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Elapsed S"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/SegmentIn"
+          },
+          "maxItems": 200000,
+          "minItems": 1,
+          "title": "Segments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "mode",
+        "segments"
+      ],
+      "title": "TranscriptIn",
+      "type": "object"
+    },
+    "VideoIn": {
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channel"
+        },
+        "duration_s": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration S"
+        },
+        "published": {
+          "anyOf": [
+            {
+              "maxLength": 20,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published"
+        }
+      },
+      "title": "VideoIn",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "video": {
+      "$ref": "#/$defs/VideoIn"
+    },
+    "transcript": {
+      "$ref": "#/$defs/TranscriptIn"
+    }
+  },
+  "required": [
+    "transcript"
+  ],
+  "title": "TranscribeResult",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kzkz22/dwyt-docs/blob/main/schemas/transcribe-result.schema.json"
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kzkz22/dwyt-docs/blob/main/schemas/summarize-input.schema.json",
+  "title": "SummarizeInput",
+  "description": "The `input` of a claimed job of kind `summarize`. The runner writes the prompt (its PROMPT_VERSION goes back in the result).",
+  "type": "object",
+  "required": ["role", "transcript"],
+  "properties": {
+    "role": {"enum": ["public", "private"], "description": "public source or own recording: the runner picks llm_public_model or llm_private_model"},
+    "language": {"type": "string", "description": "language of the summary, e.g. hu"},
+    "meta": {
+      "type": "object",
+      "properties": {
+        "title": {"type": ["string", "null"]},
+        "channel": {"type": ["string", "null"]},
+        "duration_s": {"type": ["integer", "null"]},
+        "url": {"type": ["string", "null"]}
+      }
+    },
+    "transcript": {
+      "type": "object",
+      "required": ["segments"],
+      "properties": {
+        "language": {"type": ["string", "null"]},
+        "mode": {"enum": ["captions", "cloud", "local"]},
+        "model": {"type": ["string", "null"]},
+        "caption_kind": {"enum": ["manual", "auto", null]},
+        "diarized": {"type": "boolean"},
+        "speakers": {"type": "array", "items": {"type": "string"}},
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["start", "end", "text"],
+            "properties": {
+              "start": {"type": "number"},
+              "end": {"type": "number"},
+              "speaker": {"type": ["string", "null"]},
+              "text": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  }
+}

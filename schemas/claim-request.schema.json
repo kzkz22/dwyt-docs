@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "Capabilities": {
+      "properties": {
+        "kinds": {
+          "default": [],
+          "items": {
+            "enum": [
+              "transcribe",
+              "summarize"
+            ],
+            "type": "string"
+          },
+          "title": "Kinds",
+          "type": "array"
+        },
+        "transcribe_modes": {
+          "default": [],
+          "items": {
+            "enum": [
+              "captions",
+              "cloud",
+              "local"
+            ],
+            "type": "string"
+          },
+          "title": "Transcribe Modes",
+          "type": "array"
+        },
+        "llm_roles": {
+          "default": [],
+          "items": {
+            "enum": [
+              "public",
+              "private"
+            ],
+            "type": "string"
+          },
+          "title": "Llm Roles",
+          "type": "array"
+        },
+        "allowed_domains": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Allowed Domains",
+          "type": "array"
+        },
+        "max_upload_bytes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Upload Bytes"
+        },
+        "local_sources": {
+          "default": false,
+          "title": "Local Sources",
+          "type": "boolean"
+        }
+      },
+      "title": "Capabilities",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "capabilities": {
+      "$ref": "#/$defs/Capabilities"
+    },
+    "runner_version": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Runner Version"
+    },
+    "tool_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "maxProperties": 20,
+      "title": "Tool Versions",
+      "type": "object"
+    }
+  },
+  "required": [
+    "capabilities"
+  ],
+  "title": "ClaimBody",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kzkz22/dwyt-docs/blob/main/schemas/claim-request.schema.json"
+}

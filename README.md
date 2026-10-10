@@ -7,7 +7,8 @@ A dwyt videók és hangfelvételek átiratát (időbélyeggel, beszélőkkel), m
 ## Leírások
 
 - [Funkcionális terv és döntésnapló](docs/terv.md)
-- [Központ–futtató protokoll (vázlat)](docs/protokoll.md)
+- [Központ–futtató protokoll](docs/protokoll.md) és a [JSON-sémák](schemas/)
+- [Adatvédelmi tájékoztató](docs/adatvedelem.md)
 - [Architektúra-ábra](docs/architektura.png) ([SVG](docs/architektura.svg))
 
 ## A dwyt repói
@@ -22,7 +23,7 @@ A dwyt videók és hangfelvételek átiratát (időbélyeggel, beszélőkkel), m
 
 ## Állapot
 
-Terv; kód még nincs.
+Az 1. kör kész: a központ ([dwyt-central](https://github.com/kzkz22/dwyt-central)) és a futtató ([dwyt-runner](https://github.com/kzkz22/dwyt-runner)) Google-belépéssel, meghívóval, sorvédett könyvtárral, YouTube-felirattal, felhős átírással és összefoglalóval. Következik a 2. kör: saját GPU.
 
 ## Az ábra frissítése
 

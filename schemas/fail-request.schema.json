@@ -1,0 +1,26 @@
+{
+  "properties": {
+    "error": {
+      "maxLength": 4000,
+      "title": "Error",
+      "type": "string"
+    },
+    "retry": {
+      "default": "never",
+      "enum": [
+        "later",
+        "never",
+        "next_step"
+      ],
+      "title": "Retry",
+      "type": "string"
+    }
+  },
+  "required": [
+    "error"
+  ],
+  "title": "FailBody",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kzkz22/dwyt-docs/blob/main/schemas/fail-request.schema.json"
+}

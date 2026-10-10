@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kzkz22/dwyt-docs/blob/main/schemas/transcribe-input.schema.json",
+  "title": "TranscribeInput",
+  "description": "The `input` of a claimed job of kind `transcribe`.",
+  "type": "object",
+  "required": ["source", "options"],
+  "properties": {
+    "source": {
+      "type": "object",
+      "required": ["kind", "url"],
+      "properties": {
+        "kind": {"enum": ["youtube", "url"]},
+        "url": {"type": "string", "format": "uri"},
+        "video_id": {"type": ["string", "null"]}
+      }
+    },
+    "options": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["captions", "cloud", "local"]},
+        "model": {"type": ["string", "null"], "description": "cloud: auto | universal-2 | universal-3-5-pro"},
+        "language": {"type": ["string", "null"], "description": "two/three-letter code; null = detect"},
+        "diarize": {"type": "boolean"},
+        "num_speakers": {"type": ["integer", "null"], "minimum": 1, "maximum": 20}
+      }
+    }
+  }
+}

@@ -2,7 +2,9 @@
 
 Shared documentation of **dwyt** (multi-user successor of the owner's yt-transcribe / yt-transcribe-webui):
 the functional plan with its decision log (`docs/terv.md`), the central–runner protocol (`docs/protokoll.md`)
-and the architecture diagram (`docs/architektura.svg`/`.png`).
+and the architecture diagram (`docs/architektura.svg`/`.png`), the JSON Schemas of the protocol (`schemas/`;
+the runner-sent shapes are generated from `dwyt-central/central/protocol.py`'s pydantic models) and the privacy
+policy of the owner's instance (`docs/adatvedelem.md`, linked from the Google consent screen).
 
 The diagram's source is `tools/architektura_svg.py`; after editing it run it, then `node tools/render_png.js`
 (needs playwright) to re-render the PNG. Keep the layout; keep plan, protocol and diagram consistent.

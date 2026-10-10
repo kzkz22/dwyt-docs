@@ -1,6 +1,6 @@
 # dwyt – funkcionális terv
 
-Állapot: 2026. október 10. Terv, kód még nincs. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 21. fejezet döntésnaplójában is).
+Állapot: 2026. október 10. Az 1. kör elkészült (`dwyt-central`, `dwyt-runner`); a 2. kör következik. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 21. fejezet döntésnaplójában is).
 
 ## 1. Cél
 
@@ -144,7 +144,7 @@ Opcionális, NVIDIA GPU-s gépre, igény szerint bekapcsolva.
 
 ## 12. A központ–futtató protokoll
 
-Részletesen: [protokoll.md](protokoll.md) (vázlat). Fő döntések:
+Részletesen: [protokoll.md](protokoll.md), a kérések alakja JSON Schema-ként a [schemas/](../schemas/) mappában. Fő döntések:
 
 - HTTPS, a futtató kezdeményez; munkakérés hosszan várakozó kéréssel (long-poll, kb. 30 s).
 - Munka lépésenként, a futtató bejelentett képességei szerint; lízing szívveréssel, lejárt lízingnél a munka visszakerül a sorba.
@@ -200,11 +200,11 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 
 | Kör | Tartalom | Repók |
 | --- | --- | --- |
-| 1. | GPU nélküli működő szelet: Google-belépés + meghívás + admin tartalékbelépés; könyvtár sorvédelemmel; futtató párosítása; munkasor a protokoll szerint. A futtató YouTube-feliratot és felhős átírást végez, összefoglalót bármely OpenAI-kompatibilis címmel készít. | central, runner, docs (JSON-sémák) |
+| 1. (kész) | GPU nélküli működő szelet: Google-belépés + meghívás + admin tartalékbelépés; könyvtár sorvédelemmel; futtató párosítása; munkasor a protokoll szerint. A futtató YouTube-feliratot és felhős átírást végez, összefoglalót bármely OpenAI-kompatibilis címmel készít. | central, runner, docs (JSON-sémák) |
 | 2. | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner |
 | 3. | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
 | 4. | Háttér és kliensek: feliratkozások és postaláda, értesítés (ntfy, Home Assistant), MCP. | central |
-| 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala. | central |
+| 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala; fióktörlés a felhasználó által (5.7); a Google utáni kötelező TOTP beállítása (5.5); meghívó e-mailben SMTP-vel. | central |
 
 - Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
 - **Cím:** `dwyt.iodate.date` (a tulajdonos `iodate.date` domainjének aldomainje), az Apache-on külön virtual hosttal és Let's Encrypt-tanúsítvánnyal. Fejlesztés alatt a Google-belépés `http://localhost` visszairányítással is kipróbálható.
@@ -216,7 +216,6 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | Kérdés | Mit jelent |
 | --- | --- |
 | A futtató helyi feltöltő oldala | Hogyan lép be a felhasználó a saját gépén futó oldalra (párosított futtatónál helyi token). |
-| `deno` a futtatóhoz | Telepíthető-e pip-csomagként minden platformon; ha nem, a futtató tölti le. |
 | macOS helyi Whisper | whisper.cpp vagy MLX, diarizálással vagy anélkül. |
 | Windowsos távoli GPU-gép | Saját kis ügynökprogram az indításhoz. |
 | Ollama a GPU-gépen | Modellürítés az Ollama API-jával. |
@@ -267,3 +266,8 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 9.2 | A központ címe `dwyt.iodate.date`. |
 | 9.3 | GitHub Actions minden repóban; a futtató Linuxon, Windowson és macOS-en tesztelve. |
 | 9.4 | Az 1. körben új Proxmox LXC, eleinte csak belső hálózaton; internetre átnézés után. |
+| 10.1 | Az összefoglaló utasítását és darabolását a futtató írja; a központ a szerkezetes átiratot és a szerepet (`public`/`private`) küldi, a futtató az utasítás verzióját visszaküldi. |
+| 10.2 | A futtató a szerep szerint a saját beállításából választ modellt (`llm_public_model`, `llm_private_model`); a központ modellnevet nem ismer. |
+| 10.3 | A futtató az ffmpeg-et (`imageio-ffmpeg`) és a `deno`-t is Python-csomagként kapja; mindhárom platformon kézi telepítés nélkül. |
+| 10.4 | Élesben a két adatbázis-szerepkör (`dwyt` tulajdonos, `dwyt_app` sorvédett) jelszó nélkül, peer hitelesítéssel és névleképezéssel csatlakozik. |
+| 10.5 | Az 1. körben a meghívó linkjét az admin másolja ki; SMTP-s küldés, fióktörlés a felhasználó által és a Google utáni kötelező TOTP az 5. körben. |

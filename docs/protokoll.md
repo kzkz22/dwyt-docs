@@ -1,73 +1,84 @@
-# A központ és a futtató közötti protokoll (vázlat)
+# A központ és a futtató közötti protokoll
 
-Állapot: vázlat, 2026. október 10. A fő döntések a [terv](terv.md) 12. fejezetében és a döntésnapló 7.x soraiban vannak; ez a dokumentum a részleteket gyűjti, és a megvalósítás előtt véglegesítjük. A `dwyt-central` és a `dwyt-runner` ehhez a leíráshoz igazodik; ha változik, a protokoll verziószáma nő.
+Állapot: 1-es verzió, 2026. október 10.; a `dwyt-central` és a `dwyt-runner` 1. köre ezt valósítja meg. A fő döntések a [terv](terv.md) 12. fejezetében és a döntésnapló 7.x soraiban vannak. Ha a protokoll változik, a verziószáma nő, és a központ egy ideig az előzőt is elfogadja.
+
+A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas/). A futtatótól érkező alakokat (`*-request`, `*-result`) a `dwyt-central/central/protocol.py` modelljeiből generáljuk; ha ott változik valami, a sémát is újra kell generálni.
 
 ## Alapok
 
-- **Szállítás:** HTTPS, JSON. A futtató kezdeményez minden kérést; a központ soha nem hívja a futtatót.
-- **Azonosítás:** `Authorization: Bearer <futtatótoken>`. A token a párosításkor keletkezik, a központ csak a hash-ét tárolja, a felületen visszavonható.
-- **Verzió:** minden kérésben `Dwyt-Protocol: <egész szám>` fejléc. A központ az aktuális és az előző verziót fogadja el; régebbire `426 Upgrade Required` és a felületen „frissítsd a futtatót” üzenet.
-- **Útvonal-előtag:** `/runner/v1/…` (a verziószám az URL-ben a nagy, nem visszafelé kompatibilis váltásokhoz; a fejléc a kisebbekhez).
+- **Szállítás:** HTTPS, JSON. Minden kérést a futtató kezdeményez; a központ soha nem hívja a futtatót.
+- **Verzió:** minden kérésben `Dwyt-Protocol: 1`. Ismeretlen vagy hiányzó verzióra `426` és egy magyar üzenet („frissítsd”); a futtató ilyenkor kiírja, és leáll.
+- **Azonosítás:** a párosítás után `Authorization: Bearer <futtatótoken>`. A központ csak a token hash-ét tárolja; a felület Futtatók oldalán visszavonható. Érvénytelen vagy visszavont tokenre `401`; a futtató ilyenkor újrapárosítást kér, és leáll. Ugyanez történik, ha a felhasználót letiltották.
+- **Útvonalak:** `/runner/v1/...`.
 
 ## Párosítás
 
-1. A futtató első indításkor kér egy párosítókódot: `POST /runner/v1/pair/start` → `{"code": "K7Q-4M2", "poll_id": "...", "expires_in": 600}`.
-2. A futtató kiírja a kódot; a felhasználó a központ felületén (Futtatók → Új futtató) beírja, és nevet ad a futtatónak.
-3. A futtató közben kérdezi: `POST /runner/v1/pair/poll {"poll_id"}` → függőben `202`, jóváhagyás után `{"runner_id", "token"}`. A tokent a futtató helyben, csak a saját felhasználójának olvashatóan tárolja.
+1. `POST /runner/v1/pair/start` (token nélkül) → `{"code": "K7Q-4M2", "poll_id": "...", "expires_in": 600}`. A kód 6 karakter egy félreérthető betűk nélküli ábécéből (`ABCDEFGHJKLMNPQRSTUVWXYZ23456789`).
+2. A futtató kiírja a kódot; a felhasználó a központ **Futtatók** oldalán beírja, és nevet ad a futtatónak. A kód kis- és nagybetűvel, kötőjellel vagy anélkül is elfogadott; tíz hibás próbálkozás után a felület 10 percig nem fogad kódot.
+3. A futtató 3 másodpercenként kérdez: `POST /runner/v1/pair/poll {"poll_id"}` →
+   - `202` amíg nincs jóváhagyva;
+   - `200 {"runner_id", "name", "token"}` a jóváhagyás után (a token itt, a lekérdezéskor keletkezik, és csak egyszer adódik ki; a párosítási kérés törlődik);
+   - `410`, ha lejárt.
 
-## Munkakérés (long-poll)
+## Munkakérés
 
-`POST /runner/v1/claim`, legfeljebb kb. 30 másodpercig nyitva:
+`POST /runner/v1/claim`, legfeljebb kb. 25 másodpercig nyitva (long-poll):
 
 ```json
 {
   "capabilities": {
-    "kinds": ["transcribe", "translate", "summarize"],
-    "transcribe_modes": ["captions", "cloud", "local"],
-    "llm_models": ["osszefoglalo", "osszefoglalo-helyi"],
+    "kinds": ["transcribe", "summarize"],
+    "transcribe_modes": ["captions", "cloud"],
+    "llm_roles": ["public", "private"],
     "allowed_domains": ["youtube.com", "youtu.be"],
-    "max_upload_bytes": 2147483648,
-    "local_sources": true
+    "local_sources": false
   },
   "runner_version": "0.1.0",
-  "busy": 0
+  "tool_versions": {"yt-dlp": "2026.8.19", "deno": "2.9.7"}
 }
 ```
 
-Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy egy munka:
+Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 
 ```json
-{
-  "job_id": "...",
-  "kind": "transcribe",
-  "lease_s": 900,
-  "input": { "source": {"kind": "youtube", "video_id": "..."}, "options": {"mode": "local", "...": "..."} }
-}
+{"job_id": 12, "kind": "transcribe", "lease_s": 900, "input": {"source": {...}, "options": {...}}}
 ```
 
-A központ csak a bejelentett képességeknek megfelelő munkát ad. Egy felhasználónak több futtatója lehet; egy munkát egyszerre egy futtató kap.
+- A központ csak a futtató felhasználójának munkáit adja, és csak olyat, ami a bejelentett képességeknek megfelel: fajta, átírási mód, összefoglalóhoz a szerep (`public`: nyilvános forrás, `private`: saját felvétel), URL-es munkánál az engedélyezett tartományok (pontos gépnév vagy aldomain; `*` = bármi).
+- A futtató a kapott munkát maga is ellenőrzi (fajta, forrás, mód, tartomány), és ami nem fér bele, azt hibával visszaadja. A központ esetleges feltörése így sem tud a futtatóval mást csináltatni, mint ezeket a szűk munkákat.
+- A bejelentett képességeket és verziókat a felület a Futtatók oldalon mutatja.
+- A munka bemenete: [transcribe-input](../schemas/transcribe-input.schema.json), [summarize-input](../schemas/summarize-input.schema.json). Az összefoglaló utasítását a futtató írja; a verziószámát (`prompt_version`) az eredménnyel együtt visszaküldi.
 
 ## Szívverés és megszakítás
 
-`POST /runner/v1/jobs/{job_id}/heartbeat {"stage": "transcribe", "progress": {...}}`, legalább a lízing harmadánként. Válasz: `{"lease_s": 900, "cancel": false}`. `cancel: true` esetén a futtató leállítja a munkát, és `abandoned` állapottal zárja. Lejárt lízingnél a központ a munkát visszateszi a sorba.
+`POST /runner/v1/jobs/{job_id}/heartbeat {"stage": "captions", "progress": {...}}` legalább a lízing harmadánként (a futtató 60 másodpercenként, és minden új lépésnél azonnal küldi). Válasz: `{"lease_s": 900, "cancel": false}`.
 
-## Bemeneti fájl a központon át
-
-Ha a felhasználó a böngészőben töltött fel (méretkorláttal), a munka `input.source` mezője egy rövid életű letöltési címet ad: `GET /runner/v1/jobs/{job_id}/media` (Range-kérésekkel folytatható). A futtató sikeres letöltés után jelzi, és a központ törli az átmeneti fájlt.
+- `cancel: true`: a felhasználó megszakította; a futtató a következő lépésnél abbahagyja, és `fail`-lel zárja (a központ megszakítottnak jelöli).
+- `404`/`409`: a munka már nem ezé a futtatóé (törölték, vagy lejárt a lízing, és más kapta meg); a futtató abbahagyja, és nem ad le eredményt.
+- Lejárt lízing (a futtató eltűnt): a munka visszakerül a sorba; a próbálkozások száma nő, és a 6. után a munka hibával áll le.
+- A lépések nevei (`download`, `captions`, `prepare-audio`, `upload`, `transcribe`, `summarize`, `write`) a felületen magyarul látszanak.
 
 ## Eredmény leadása
 
-`PUT /runner/v1/jobs/{job_id}/result` a munka fajtájának megfelelő JSON-nal (átirat: szegmensek, beszélők, nyelv, mód, modell, figyelmeztetések, költség; fordítás: szegmensenkénti szöveg; összefoglaló: Markdown, modell, tokenek). Ismételhető (idempotens): ugyanarra a munkára a második leadás nem hoz létre új eredményt.
+`PUT /runner/v1/jobs/{job_id}/result`, a munka fajtájától függően: [transcribe-result](../schemas/transcribe-result.schema.json) vagy [summarize-result](../schemas/summarize-result.schema.json).
 
-Hiba: `POST /runner/v1/jobs/{job_id}/fail {"error": "...", "retry": "later" | "never" | "next_step"}`. A `next_step` a beállított láncolatban a következő lépést kéri (például nincs felirat → helyi Whisper).
+- Ismételhető: ha a futtató nem kapott választ, újra leadhatja; a központ a már tárolt eredményt nem tárolja kétszer, és ugyanazt a választ adja.
+- Érvénytelen alakra `422` (például üres szegmenslista); a futtató ezt hibaként naplózza.
+- A futtató a leadást átmeneti hibánál (hálózat, `5xx`) egyre ritkábban, kb. 20 percig próbálja.
+- Átírás után, ha a beküldő kérte, a központ magától sorba teszi az összefoglalót.
 
-## Helyi forrás (figyelt mappa)
+## Hiba
 
-A futtató maga is kezdeményezhet munkát a saját forrásából: `POST /runner/v1/local-items {"sha256", "name", "size", "options"}`. A központ létrehozza az elemet és a munkát (újrahasznosítás a hash alapján, a terv 7. fejezete szerint), és a munkát ugyanennek a futtatónak adja; a fájl el sem hagyja a felhasználó gépét.
+`POST /runner/v1/jobs/{job_id}/fail {"error": "...", "retry": "later" | "never" | "next_step"}`
 
-## Nyitott részletek
+- `later`: átmeneti (YouTube-tiltás, élő adás, elérhetetlen szolgáltató); a központ 1, 5, 15, 60, 180, 360 perc múlva újra kiadja, legfeljebb 6 próbálkozásig.
+- `never`: végleges (nincs kulcs, rossz modellnév, nem engedélyezett tartomány); a munka hibával áll le, a felületen „Újra” gombbal újraindítható.
+- `next_step`: ez a mód ennél a forrásnál nem működik (például nincs felirat a videó nyelvén); a feliratkozások láncolatában (4. kör) a következő mód jön, addig a központ `never`-ként kezeli.
+- A hibaüzenet magyarul, a felhasználónak szól; kulcsot vagy belső részletet nem tartalmazhat.
 
-- A munkák pontos bemeneti és kimeneti sémája (JSON Schema a `dwyt-docs`-ban).
-- A long-poll időtúllépése az Apache `ProxyTimeout`-jához igazítva.
-- Kéréskorlát futtatónként.
-- Hogyan jelzi a futtató, hogy a GPU-gép épp ébred (várakozó állapot a felületen).
+## Később
+
+- **Bemeneti fájl a központon át** (3. kör): böngészős feltöltésnél a munka egy rövid életű letöltési címet kap (`GET /runner/v1/jobs/{job_id}/media`, Range-kérésekkel).
+- **Helyi forrás** (3. kör): a futtató a figyelt mappából maga kezdeményez munkát: `POST /runner/v1/local-items {"sha256", "name", "size", "options"}`; a fájl el sem hagyja a gépet.
+- **Helyi Whisper** (2. kör): `transcribe_modes`-ban `local`; a futtató a llama-swap felől éri el a GPU-workert.
+- Kéréskorlát futtatónként; a GPU-gép ébredésének jelzése a felületen.

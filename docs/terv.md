@@ -1,0 +1,230 @@
+# dwyt – funkcionális terv
+
+Állapot: 2026. október 10. Terv, kód még nincs. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 20. fejezet döntésnaplójában is).
+
+## 1. Cél
+
+Videók és hangfelvételek átirata (időbélyeggel, beszélőkkel), magyar fordítása és magyar összefoglalója, felhasználónként külön, kereshető könyvtárban, a YouTube-feliratkozások háttérfeldolgozásával. Interneten elérhető szolgáltatás, amelyet bárki telepíthet, és amelyre meghívással (vagy a telepítő döntése szerint nyitottan) lehet regisztrálni.
+
+Alapelvek:
+
+- **A pénzbe kerülő, titkos és a médiához nyúló munka a felhasználónál fut**, a saját futtatóján (8. fejezet). A központ irányít és tárol, nem számol.
+- **Mindenkinek külön könyvtára van**, a felhasználók nem látnak át egymáshoz. Ugyanazon a forráson végzett munka (átirat, fordítás, összefoglaló) a szabályok szerint újrahasznosítható (7. fejezet).
+- **Felhős szolgáltatás csak a felhasználó saját kulcsával** (AssemblyAI, OpenRouter vagy más), a költség az övé.
+- **Saját helyi AI** (GPU, helyi LLM) bekapcsolható, másik hálózatban is (9–10. fejezet).
+- **Nincs csendes átváltás** az átírási módok között; ami láncolat (felirat → helyi → felhő), az kifejezett, beállított szabály.
+
+## 2. Viszony a régi rendszerhez
+
+A régi rendszer (`yt-transcribe` és `yt-transcribe-webui`) változatlanul megmarad és fut tovább; a dwyt külön repókban, külön életet él. Ha a dwyt már jól működik, akkor dől el, kell-e még a régi.
+
+Amit a dwyt a régiből átvesz (kódban és tapasztalatban):
+
+- a yt-transcribe API letöltés-, ffmpeg-, felirat- és felhős kódja → a futtatóba;
+- a GPU-worker (WhisperX, wav2vec2, pyannote) → a GPU-gép csomagjába;
+- a llama-swap + LiteLLM felállás és az Unraid-indító → az AI-router csomagjába;
+- a webui könyvtára, keresése (PostgreSQL, `pgvector`, `bge-m3`), összefoglaló- és fordításlogikája, postaládája, MCP-je → a központba, többfelhasználóssá alakítva.
+
+A régi könyvtár tartalma később egyszeri behozatallal kerülhet át a tulajdonos fiókjába (18. fejezet); a dwyt üresen indul.
+
+## 3. Repók és telepítési egységek
+
+| Repó | Mi | Hol fut | Licenc |
+| --- | --- | --- | --- |
+| `dwyt-docs` | Ez a terv, az architektúra, a döntésnapló és a központ–futtató protokoll | – | MIT |
+| `dwyt-central` | Központ: webes felület, belépés, könyvtár, keresés, postaláda, munkasor, MCP | Egy publikus szerver (a tulajdonosnál: Proxmox LXC) | AGPL-3.0 |
+| `dwyt-runner` | Futtató: letöltés, felirat, felhős átírás, LLM-hívások, figyelt mappa | A felhasználó gépe vagy VPS-e; Linux, Windows, macOS | MIT |
+| `dwyt-airouter` | AI-router: LiteLLM + llama-swap, indítók, ébresztés, `models.yaml` | Mindig bekapcsolt gép a felhasználónál | MIT |
+| `dwyt-gpu` | GPU-gép: llama-server, Whisper GPU-worker, modellek letöltése | NVIDIA GPU-s gép, igény szerint bekapcsolva | MIT |
+
+Telepítéskor a felhasználónak a futtató kötelező, az AI-router és a GPU-gép opcionális. A három csomag egy gépre is tehető, de mindegyik külön telepítés.
+
+A tulajdonos saját felállása: központ a Proxmoxon (publikus, Apache mögött), futtató és AI-router az `ai-router` LXC-ben, GPU-gép az Unraidon (Unraid-indítóval).
+
+## 4. Architektúra
+
+![Architektúra](architektura.png)
+
+Forrás: [architektura.svg](architektura.svg).
+
+Adatfolyamok:
+
+1. A **futtató kapcsolódik ki** a központhoz HTTPS-en: munkát kér, eredményt ad le. A központ soha nem hívja a futtatót; a futtatónak nem kell nyitott port, VPN vagy NAT-beállítás.
+2. A futtató a **felhőt** (felhős átírás, felhős LLM) a felhasználó saját kulcsával hívja, a **YouTube-ot** a saját IP-címéről éri el.
+3. A futtató a **helyi AI-t** két címen éri el: az „LLM-cím” (LiteLLM vagy bármely OpenAI-kompatibilis szerver) és a „Whisper-cím” (a llama-swap felől a GPU-worker). Neki mindegy, mi van mögöttük.
+4. Az **AI-router** llama-swapja egyedül birtokolja a GPU-t: indítja és leállítja a GPU-gép konténereit, és sorba állítja a kéréseket. A felhasználó többi kliense (OpenCode, Hermes, Open WebUI) is a LiteLLM-re mutat, így náluk sem okoz gondot, ha a GPU épp Whispert futtat.
+5. A **keresés** a központban fut (a kérdést is vektorrá kell alakítani, és a futtató kikapcsolt állapotában is működnie kell).
+
+## 5. Felhasználók, belépés, jogosultságok
+
+- **Regisztrációs mód** telepítéskor: nyitott / meghívásos / zárt. A tulajdonos példánya meghívásos.
+- **Meghívás:** az admin felvesz egy e-mail-címet; a rendszer egyszer használható, 7 napig érvényes meghívólinket küld. Belépni csak az a Google-fiók tud, amelynek ellenőrzött e-mail-címe egyezik a meghívóval.
+- **Belépés Google-lel** (OpenID Connect, „Web application” típusú OAuth-kliens, a nyilvános HTTPS-címre visszairányítva). A fiókot a Google állandó azonosítója (`sub`) köti, nem az e-mail-cím.
+- **Második faktor:** a Google-fiók adja; telepítési beállítással kötelezővé tehető egy saját TOTP is a Google-belépés után.
+- **Admin tartalékbelépés:** jelszó + TOTP, csak az admin fióknak, Google-kiesés vagy fióktiltás esetére.
+- **Google-fiók nélküli felhasználó** az első körben nem lehet; a következő körben meghívólinkkel passkey-t regisztrálhat. További belépési szolgáltatók (Microsoft, GitHub) később.
+- **Szerepek:**
+  - *admin:* meghív, letilt, töröl; látja a fiókok adatait, a tárhely- és munkastatisztikát, a futtatók állapotát. **Nem látja** a felhasználók könyvtárát (átiratok, összefoglalók, keresések); a felületen erre nincs út, és ezt az adatvédelmi tájékoztató is így írja.
+  - *felhasználó:* a saját könyvtára, futtatói, tokenjei, csatornái.
+- **Fióktörlés** a felhasználó által: mindent töröl (könyvtár, tokenek, csatornák, futtatók). A másik felhasználónak már átadott (újrahasznosított) eredmény nála megmarad.
+- **YouTube-feliratkozások:** ugyanaz a Web OAuth-kliens, de a `youtube.readonly` engedélyt csak akkor kéri, amikor a felhasználó bekapcsolja a feliratkozásokat. Ellenőrzés (Google verification) nélkül a felhasználók az „unverified app” figyelmeztetést látják, és legfeljebb 100 felhasználó engedélyezheti; a sima belépéshez (név, e-mail) nem kell ellenőrzés.
+
+## 6. Könyvtár
+
+- Felhasználónként külön: elemek, átiratok (elemenként több, egy fő), fordítások, összefoglaló-változatok, keresési darabok, címkék, jegyzetek, beszélőnevek. Minden táblán ott a felhasználó; javaslat (megerősítendő): az adatbázis-szintű sorvédelem (PostgreSQL row-level security) második védvonalként is őrizze a szétválasztást.
+- **Saját felvétel** (feltöltés, figyelt mappa) és **nyilvános forrás** (YouTube, URL) megkülönböztetése megmarad: saját felvétel csak a felhasználó helyi LLM-jéhez mehet automatikusan, felhős LLM-hez csak a felhasználó kifejezett beállításával.
+- Hang és videó a központban nem tárolódik (a központon átmenő feltöltés csak addig, amíg a futtató át nem vette; 8. fejezet).
+- A régi tervből még nem megvalósított, de ide tartozó funkciók: címkék, jegyzet, beszélők elnevezése, a teljes könyvtár exportja (Markdown, JSON).
+
+## 7. Újrahasznosítás
+
+Ha egy felhasználó olyan munkát kér, amit valaki már elvégzett ugyanazon a forráson ugyanazokkal a beállításokkal, a központ nem küldi ki a futtatónak, hanem átveszi az eredményt.
+
+- **A forrás azonosítója:** YouTube-nál a videóazonosító, egyéb URL-nél a normalizált URL, feltöltésnél és figyelt mappánál a fájl SHA-256 hash-e.
+- **Lépésenként** dönt (átirat; fordítás; összefoglaló), mert a lépések külön munkák. Egy lépés kulcsa a forrás + a lépés beállításai (mód, modell, nyelv, beszélő-beállítás; fordításnál és összefoglalónál a bemeneti átirat hash-e, a modell és az utasítás-verziója).
+- **YouTube és URL:** mindhárom lépés átvehető.
+- **Feltöltés:** csak akkor, ha az eredeti feltöltő ezt engedi; saját felvételnél alapból nem engedi. (Az eredményt csak az kaphatja meg, akinél ugyanaz a fájl van; a tartalom így nem szivárog, de az kiderülhetne, hogy a fájl már járt a rendszerben.)
+- Az átvett tartalom jelölve van („átvett átirat”), de nem derül ki, kitől származik.
+- Az átvevő nem fizet érte (az eredeti kérő fizetett); ezt a felhasználók köre miatt elfogadjuk.
+
+## 8. Futtató (`dwyt-runner`)
+
+A felhasználónál fut, kötelező. A régi yt-transcribe API-ból nő ki, egy kifelé kapcsolódó résszel.
+
+- **Feladatai:** YouTube-felirat, letöltés (yt-dlp), hangkonverzió (ffmpeg), felhős átírás, a helyi Whisper hívása (a llama-swap felől), összefoglaló és fordítás (felhős vagy helyi LLM).
+- **Kulcsok csak a futtatónál** vannak (AssemblyAI, OpenRouter stb.), helyben tárolva; a központ soha nem látja őket. Ezért az összefoglaló újrakérése is csak bekapcsolt futtatóval megy.
+- **Saját felvétel útja:**
+  - *(a)* böngészőből a központon át, méretkorláttal (alapból 2 GB): a központ csak addig tárolja, amíg a futtató le nem töltötte;
+  - *(b)* közvetlenül a futtatónál: figyelt mappa vagy a futtató helyi feltöltő oldala. A saját felvétel így el sem hagyja a felhasználó gépét; a központ csak az átiratot kapja. Saját felvételhez ez az ajánlott út.
+- **Képességek:** minden munkakéréskor bejelenti, mit tud (felirat, felhős átírás, helyi Whisper, LLM-modellek, engedélyezett tartományok, legnagyobb fájlméret); a központ csak ennek megfelelő munkát ad.
+- **Biztonság:** csak szűk, ellenőrzött munkatípusokat fogad el; választható tartomány-szűrő (például „csak YouTube”); jogosultság nélküli felhasználóként vagy konténerben fut; saját, visszavonható tokenje van. Ha a központot feltörnék, a támadó ennél többet ne tudjon a futtatóval csináltatni.
+- **Telepítés:**
+  - minden gépre egy paranccsal, az `uv` csomagkezelővel (Linux, Windows, macOS; a Pythont is hozza, rendszergazda nem kell); az `ffmpeg` és a YouTube-hoz kellő `deno` letöltését maga intézi (a `deno` pip-csomagos elérhetőségét ellenőrizni kell);
+  - VPS-re és Linux-szerverre Docker-kép is.
+- **Párosítás:** telepítéskor rövid párosítókódot mutat; a felhasználó ezt beírja a felületen, és a futtató megkapja a saját hosszú tokenjét.
+- **Frissítés:** naponta megnézi, van-e új változat; magától csak akkor frissül, ha ezt a felhasználó bekapcsolta, alapból csak szól. A yt-dlp mindig magától frissül.
+- **Több futtató** is lehet felhasználónként (például otthoni GPU-s és egy VPS). Az első körben egy munkát mindig egy futtató kap: az, amelyik elérhető és tudja a kért módot.
+- **Kikapcsolt futtató:** a munkák várnak (mint a régi rendszerben az Unraidra). Az RSS-figyelés és a postaláda központi, ezért az új videók akkor is megjelennek, csak feldolgozni nem lehet őket.
+
+## 9. AI-router (`dwyt-airouter`)
+
+Opcionális, mindig bekapcsolt gépre. A régi `ai-router` LiteLLM + llama-swap felállása általánosítva.
+
+- **llama-swap:** egyedül birtokolja a GPU-t, sorba állítja a kéréseket, indítja és leállítja a GPU-gép LLM- és Whisper-konténereit. Ehhez a felhasználó LLM-szerverét a llama-swap indítja (a meglévő llama-server indítóparancsa a llama-swap beállításába kerül); mellette önállóan futó, a GPU-t foglaló szerver nem lehet.
+- **Támogatott LLM-szerver** az első körben: llama.cpp (llama-server) és bármi, ami parancssorból vagy Docker-konténerként indítható. Ollama később (ott a modellek ürítését az Ollama API-jával kellene kérni).
+- **LiteLLM:** ajánlott, de kikapcsolható. Stabil modellnevek és felhős tartalék (`auto`) a többi kliensnek; akinek csak a futtató számít, annak a llama-swap is elég (az is OpenAI-kompatibilis).
+- **Indítók** (a llama-swap mellett cserélhető):
+  - *helyi Docker*, ha a GPU-gép ugyanaz a gép;
+  - *Docker SSH-n át* (`docker -H ssh://…`), ha a GPU-gép Linux;
+  - *Unraid API* (a régi `unraid-container.sh`).
+  Windowsos GPU-gép az első körben csak az „egy gépen minden” változatban.
+- **Ébresztés (Wake-on-LAN):** opcionális lépés az indítóban: ha a GPU-gép nem válaszol, felkelti, és megvárja. Altatás és kikapcsolás nem a rendszer dolga. Ébresztés nélkül: az LLM a LiteLLM-tartalékkal a felhőbe megy (a felhasználó beállítása szerint), a Whisper-munka vár.
+- **Egyetlen modell-leíró fájl** (`models.yaml`): ebből készül a LiteLLM és a llama-swap beállítása, és a GPU-gépen a modellfájlok letöltési listája. A modellneveket így egy helyen kell karbantartani.
+
+## 10. GPU-gép (`dwyt-gpu`)
+
+Opcionális, NVIDIA GPU-s gépre, igény szerint bekapcsolva.
+
+- **Tartalma:** llama-server konténer, Whisper GPU-worker konténer (a régi `gpu-worker`), a modellek NVMe-gyorsítótára.
+- **Modellek letöltése:** `modellek letöltése` parancs: a `models.yaml` listájából a Hugging Face-ről tölti le a GGUF- és Whisper-modelleket, és ellenőrzi a helyet. Kézi másolás is lehetséges.
+- **Platform:** Linux + NVIDIA + Docker; Windows WSL2-vel. macOS-en nincs helyi Whisper (a Docker ott nem éri el a GPU-t; ehhez whisper.cpp vagy MLX kellene, ez későbbi kérdés).
+- **Hálózat:** a GPU-gép portjait tűzfallal csak az AI-router érje el (a llama-server és a worker maga nem kér azonosítást).
+
+## 11. Feldolgozás
+
+- **Munkák lépésenként:** átírás, fordítás, összefoglaló, indexelés (ez utóbbi a központban). A központ lépésenként dönt az újrahasznosításról és arról, melyik futtató kapja.
+- **Átírási láncolat** (feliratkozásoknál beállított szabály, minden lépés látszik a munkán): YouTube-felirat → helyi Whisper (megvárja a GPU-gépet) → felhős átírás, csak ha a csatornán engedélyezve van.
+- **Összefoglaló és fordítás** a régi rendszer szerint: magyar összefoglaló az eredeti nyelvű átiratból; fordítás szegmensenként, időbélyeggel, mozaikszavak magyarázatával; gondolkodás nélküli modellnevek.
+
+## 12. A központ–futtató protokoll
+
+Részletesen: [protokoll.md](protokoll.md) (vázlat). Fő döntések:
+
+- HTTPS, a futtató kezdeményez; munkakérés hosszan várakozó kéréssel (long-poll, kb. 30 s).
+- Munka lépésenként, a futtató bejelentett képességei szerint; lízing szívveréssel, lejárt lízingnél a munka visszakerül a sorba.
+- Megszakítás a szívverés válaszában.
+- Verziózott protokoll: a központ az aktuális és az előző verziót fogadja; régebbi futtató nem kap munkát, és a felületen „frissítsd a futtatót” üzenet jelenik meg.
+
+## 13. Keresés
+
+A régi rendszer szerint (PostgreSQL teljes szöveges keresés `hungarian` + `unaccent`, `pg_trgm`, `pgvector` `bge-m3`-mal, összefésült rangsor), a központban, felhasználónként szűrve. A `bge-m3` egy példányban fut mindenkinek (CPU, kb. 2,2 GB RAM); néhány tucat felhasználónál ez bírható.
+
+## 14. YouTube-feliratkozások és postaláda
+
+A régi rendszer szerint (csatornák Google-lel, Takeout-fájlból vagy kézzel; RSS-figyelés; „mindig / kérdezzen / soha” szabály; Shorts és élő adás kezelése), felhasználónként. Az RSS-figyelés központi: ugyanazt a csatornát több felhasználó követheti, a hírcsatornát elég egyszer lekérni.
+
+## 15. MCP
+
+Felhasználónként, a felületen létrehozott, névvel ellátott, visszavonható tokenekkel (az adatbázisban csak a hash-ük; létrehozáskor egyszer látszanak). Tokenenkénti jogkör: csak olvasás / indítás is; saját felvételekkel / nélkülük. Javaslat (megerősítendő): a `/mcp` a nyilvános címen érhető el, mert a felhasználók kívülről használják, tokennel és kéréskorláttal.
+
+## 16. Értesítés
+
+Nyitott kérdés (19. fejezet). A régi rendszerben Home Assistant volt; többfelhasználós rendszerben felhasználónként választható csatorna kell (például web push, ntfy, Home Assistant webhook, e-mail).
+
+## 17. Nyilvános üzemeltetés
+
+- **Apache reverse proxy:** saját (al)domain, Let's Encrypt-tanúsítvány, név szerinti virtual host (a meglévő proxytunnel-beállítástól külön); `LimitRequestBody` a feltöltési korláthoz igazítva (az újabb Apache-ok alapból 1 GB-ra korlátoznak), `ProxyTimeout` a hosszú feltöltésekhez; `X-Forwarded-Proto https`, és a központ csak az Apache címéről fogadja el a továbbított kliens-IP-t; HSTS; fail2ban a belépés ellen.
+- A sütik `Secure` jelzővel; a passkey (következő kör) a HTTPS miatt itt már lehetséges.
+- **Adatkezelés (GDPR):** a központ üzemeltetője adatkezelő a felhasználók adataira és a feltöltött felvételekben szereplő harmadik személyekre is. Adatvédelmi tájékoztató, fióktörlés, export kell.
+- Mentés: a központ adatbázisa (a tulajdonosnál a Proxmox-mentés a PBS-re).
+
+## 18. Átállás a tulajdonosnál
+
+1. A régi rendszer fut tovább.
+2. A dwyt központ új LXC-be (publikus, Apache mögött).
+3. Futtató és AI-router az `ai-router` LXC-ben (a régi LiteLLM és llama-swap helyett vagy mellett, külön porton), GPU-gép az Unraidon az Unraid-indítóval.
+4. A régi könyvtár egyszeri behozatala a tulajdonos fiókjába (később, nem sürgős).
+5. Ha a dwyt jól működik, eldől, kell-e még a régi.
+
+## 19. Nyitott kérdések
+
+| Kérdés | Mit jelent |
+| --- | --- |
+| Értesítés | Felhasználónként milyen csatorna: web push, ntfy, Home Assistant webhook, e-mail. |
+| Kvóták | Felhasználónkénti tárhely, munkaszám, feltöltési méret; nyitott regisztrációnál kötelező. |
+| Újrahasznosítás adatmodellje | Közös, tartalom szerint címzett tároló vagy másolás felhasználónként; törléskor mi marad. |
+| A futtató helyi feltöltő oldala | Hogyan lép be a felhasználó a saját gépén futó oldalra (párosított futtatónál helyi token). |
+| `deno` a futtatóhoz | Telepíthető-e pip-csomagként minden platformon; ha nem, a futtató tölti le. |
+| macOS helyi Whisper | whisper.cpp vagy MLX, diarizálással vagy anélkül. |
+| Windowsos távoli GPU-gép | Saját kis ügynökprogram az indításhoz. |
+| Ollama a GPU-gépen | Modellürítés az Ollama API-jával. |
+| A régi könyvtár behozatala | Formátum és időpont. |
+| Sorvédelem az adatbázisban | PostgreSQL row-level security második védvonalként (6. fejezet). |
+| Nyilvános `/mcp` | Kívülről elérhető MCP tokennel és kéréskorláttal (15. fejezet). |
+
+## 20. Döntésnapló
+
+| # | Döntés |
+| --- | --- |
+| 1.1 | Többfelhasználós, interneten elérhető szolgáltatás; bárki telepítheti; regisztráció a telepítő döntése szerint (nyitott / meghívásos / zárt); a tulajdonosnál meghívásos. |
+| 1.2 | Felhasználónként külön, át nem járható könyvtár. |
+| 1.3 | Felhős szolgáltatás csak a felhasználó saját kulcsával; a költség az övé. |
+| 1.4 | A régi rendszer megmarad; a dwyt `dwyt-` kezdetű, külön repókban él. |
+| 2.1 | Központ + felhasználónkénti futtató; a futtató kötelező, és csak kifelé kapcsolódik (nincs port, VPN, NAT-beállítás). |
+| 2.2 | A YouTube-letöltés és a sávszélesség a felhasználó futtatóját terheli; nincs központi futtató. |
+| 2.3 | Kulcsok és LLM-hívások csak a futtatónál; a központ nem lát kulcsot. |
+| 2.4 | Saját felvétel a központon át (méretkorláttal, 2 GB) vagy közvetlenül a futtatónál (figyelt mappa, helyi feltöltés; ez az ajánlott). |
+| 2.5 | Futtató telepítése `uv`-val Linuxra, Windowsra, macOS-re; Docker-kép szervereknek. Docker Desktop nem kötelező. |
+| 2.6 | macOS-en az első körben nincs helyi Whisper. |
+| 2.7 | Több futtató felhasználónként; egy munkát egy futtató kap, az elérhető és megfelelő képességű. |
+| 2.8 | Keresés és `bge-m3` a központban, egy példányban. |
+| 3.1 | Újrahasznosítás lépésenként: YouTube/URL mindhárom lépés; feltöltés csak az eredeti feltöltő engedélyével (saját felvételnél alapból nem); jelölve, forrás megnevezése nélkül. |
+| 4.1 | Három telepítési csomag: futtató, AI-router (LiteLLM + llama-swap, mindig bekapcsolva), GPU-gép (llama-server, Whisper, NVMe, GPU); egy gépre is tehetők. |
+| 4.2 | Támogatott LLM-szerver: llama.cpp és parancssorból vagy Dockerrel indítható szerver; Ollama később. |
+| 4.3 | Indítók: helyi Docker, Docker SSH-n át, Unraid API; Windowsos távoli GPU-gép később. |
+| 4.4 | LiteLLM ajánlott, de kikapcsolható. |
+| 4.5 | Ébresztés (Wake-on-LAN) opcionális lépés az indítóban; altatás és kikapcsolás nem. |
+| 4.6 | Egyetlen `models.yaml`; ebből a LiteLLM, a llama-swap beállítása és a letöltési lista. |
+| 4.7 | A GPU-gép csomagjában modellletöltő parancs; kézi másolás is lehet. |
+| 5.1 | Belépés Google-lel (OIDC, Web application kliens), meghívással; azonosítás a Google `sub` szerint. |
+| 5.2 | Google-fiók nélkül az első körben nincs felhasználó; passkey meghívólinkkel a következő körben; más szolgáltatók később. |
+| 5.3 | Admin tartalékbelépés jelszó + TOTP-vel. |
+| 5.4 | Az admin nem látja a felhasználók könyvtárát; csak fiókadatokat és statisztikát. |
+| 5.5 | Saját TOTP a Google mellett telepítési beállítással kötelezővé tehető; alapból nem. |
+| 5.6 | MCP- és futtatótokenek felhasználónként, a felületen kezelve, hash-elve; futtató párosítókóddal. |
+| 5.7 | Fióktörlés a felhasználó által; az átadott eredmény a másiknál megmarad. |
+| 6.1 | Öt repó: `dwyt-docs`, `dwyt-central`, `dwyt-runner`, `dwyt-airouter`, `dwyt-gpu`. |
+| 6.2 | Nyilvános repók; AGPL-3.0 a központra, MIT a többire. |
+| 6.3 | A dwyt üresen indul; a régi könyvtár később egyszeri behozatallal. |
+| 7.1 | Protokoll: HTTPS long-poll; munka lépésenként, képességek szerint; lízing és szívverés. |
+| 7.2 | Verziózott protokoll (aktuális + előző); a futtató naponta ellenőriz, önfrissítés csak bekapcsolva; a yt-dlp mindig frissül. |

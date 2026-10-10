@@ -155,7 +155,7 @@ A régi rendszer szerint (csatornák Google-lel, Takeout-fájlból vagy kézzel;
 
 ## 15. MCP
 
-Felhasználónként, a felületen létrehozott, névvel ellátott, visszavonható tokenekkel (az adatbázisban csak a hash-ük; létrehozáskor egyszer látszanak). Tokenenkénti jogkör: csak olvasás / indítás is; saját felvételekkel / nélkülük. Javaslat (megerősítendő): a `/mcp` a nyilvános címen érhető el, mert a felhasználók kívülről használják, tokennel és kéréskorláttal.
+Felhasználónként, a felületen létrehozott, névvel ellátott, visszavonható tokenekkel (az adatbázisban csak a hash-ük; létrehozáskor egyszer látszanak). Tokenenkénti jogkör: csak olvasás / indítás is; saját felvételekkel / nélkülük. A `/mcp` a nyilvános címen érhető el, mert a felhasználók kívülről használják; tokennel és kéréskorláttal.
 
 ## 16. Értesítés
 
@@ -190,7 +190,6 @@ Nyitott kérdés (19. fejezet). A régi rendszerben Home Assistant volt; többfe
 | Ollama a GPU-gépen | Modellürítés az Ollama API-jával. |
 | A régi könyvtár behozatala | Formátum és időpont. |
 | Sorvédelem az adatbázisban | PostgreSQL row-level security második védvonalként (6. fejezet). |
-| Nyilvános `/mcp` | Kívülről elérhető MCP tokennel és kéréskorláttal (15. fejezet). |
 
 ## 20. Döntésnapló
 
@@ -228,3 +227,4 @@ Nyitott kérdés (19. fejezet). A régi rendszerben Home Assistant volt; többfe
 | 6.3 | A dwyt üresen indul; a régi könyvtár később egyszeri behozatallal. |
 | 7.1 | Protokoll: HTTPS long-poll; munka lépésenként, képességek szerint; lízing és szívverés. |
 | 7.2 | Verziózott protokoll (aktuális + előző); a futtató naponta ellenőriz, önfrissítés csak bekapcsolva; a yt-dlp mindig frissül. |
+| 8.1 | Az MCP a nyilvános címen érhető el, felhasználónkénti tokennel és kéréskorláttal. |

@@ -1,6 +1,6 @@
 # dwyt – funkcionális terv
 
-Állapot: 2026. október 10. Terv, kód még nincs. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 20. fejezet döntésnaplójában is).
+Állapot: 2026. október 10. Terv, kód még nincs. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 21. fejezet döntésnaplójában is).
 
 ## 1. Cél
 
@@ -194,7 +194,24 @@ A szabályok a régi rendszerből jönnek, felhasználónként beállíthatóan:
 4. A régi könyvtár egyszeri behozatala a tulajdonos fiókjába (később, nem sürgős).
 5. Ha a dwyt jól működik, eldől, kell-e még a régi.
 
-## 19. Nyitott kérdések
+## 19. Körök és sorrend
+
+Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, ezért a dwyt-nek az első kör után még nem kell mindent tudnia.
+
+| Kör | Tartalom | Repók |
+| --- | --- | --- |
+| 1. | GPU nélküli működő szelet: Google-belépés + meghívás + admin tartalékbelépés; könyvtár sorvédelemmel; futtató párosítása; munkasor a protokoll szerint. A futtató YouTube-feliratot és felhős átírást végez, összefoglalót bármely OpenAI-kompatibilis címmel készít. | central, runner, docs (JSON-sémák) |
+| 2. | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner |
+| 3. | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
+| 4. | Háttér és kliensek: feliratkozások és postaláda, értesítés (ntfy, Home Assistant), MCP. | central |
+| 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala. | central |
+
+- Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
+- **Cím:** `dwyt.iodate.date` (a tulajdonos `iodate.date` domainjének aldomainje), az Apache-on külön virtual hosttal és Let's Encrypt-tanúsítvánnyal. Fejlesztés alatt a Google-belépés `http://localhost` visszairányítással is kipróbálható.
+- **Hol fut az 1. körben:** új Proxmox LXC (Debian, PostgreSQL 17 + `pgvector`, systemd), eleinte csak a belső hálózaton, tesztfelhasználókkal. Az internetre akkor kerül ki, amikor a belépés, a sorvédelem és az Apache-beállítás kész és át van nézve.
+- **Automatikus tesztelés** (GitHub Actions) minden repóban az 1. körtől: tesztek, ruff, pip-audit; a futtató tesztjei Linuxon, Windowson és macOS-en is.
+
+## 20. Nyitott kérdések
 
 | Kérdés | Mit jelent |
 | --- | --- |
@@ -205,7 +222,7 @@ A szabályok a régi rendszerből jönnek, felhasználónként beállíthatóan:
 | Ollama a GPU-gépen | Modellürítés az Ollama API-jával. |
 | A régi könyvtár behozatala | Formátum és időpont. |
 
-## 20. Döntésnapló
+## 21. Döntésnapló
 
 | # | Döntés |
 | --- | --- |
@@ -246,3 +263,7 @@ A szabályok a régi rendszerből jönnek, felhasználónként beállíthatóan:
 | 8.3 | Értesítés: ntfy és Home Assistant webhook az első körben, web push később; e-mail csak meghívóhoz, ha van SMTP, különben az admin másolja a linket. |
 | 8.4 | Kvóták: 2 GB-os böngészős feltöltés, egyszerre 2; 2 GB szöveg és vektor felhasználónként; felváltva kiszolgált központi sor; az admin felülírhatja. |
 | 8.5 | Újrahasznosítás közös, módosíthatatlan eredménytárral (átirat, fordítás, összefoglaló, keresési darabok); személyes adatok a felhasználó tábláiban; hivatkozás nélküli eredmény törlődik. |
+| 9.1 | Sorrend: 1. GPU nélküli szelet; 2. saját GPU; 3. fordítás, keresés, újrahasznosítás, kvóták, figyelt mappa; 4. feliratkozások, értesítés, MCP; 5. kiegészítések. |
+| 9.2 | A központ címe `dwyt.iodate.date`. |
+| 9.3 | GitHub Actions minden repóban; a futtató Linuxon, Windowson és macOS-en tesztelve. |
+| 9.4 | Az 1. körben új Proxmox LXC, eleinte csak belső hálózaton; internetre átnézés után. |

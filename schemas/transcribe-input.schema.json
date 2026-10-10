@@ -20,10 +20,10 @@
       "required": ["mode"],
       "properties": {
         "mode": {"enum": ["captions", "cloud", "local"]},
-        "model": {"type": ["string", "null"], "description": "cloud: auto | universal-2 | universal-3-5-pro"},
+        "model": {"type": ["string", "null"], "description": "cloud: auto | universal-2 | universal-3-5-pro; local: one of the runner's whisper_models (large-v3, large-v3-turbo)"},
         "language": {"type": ["string", "null"], "description": "two/three-letter code; null = detect"},
         "diarize": {"type": "boolean"},
-        "num_speakers": {"type": ["integer", "null"], "minimum": 1, "maximum": 20}
+        "num_speakers": {"type": ["integer", "null"], "minimum": 1, "maximum": 20, "description": "cloud and local: expected number of speakers, if known"}
       }
     }
   }

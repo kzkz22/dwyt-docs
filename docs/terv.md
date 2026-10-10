@@ -1,6 +1,6 @@
 # dwyt – funkcionális terv
 
-Állapot: 2026. október 10. Az 1. kör elkészült (`dwyt-central`, `dwyt-runner`); a 2. kör következik. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 21. fejezet döntésnaplójában is).
+Állapot: 2026. október 10. Az 1. kör elkészült és élesben fut (`dwyt-central`, `dwyt-runner`); a 2. kör (saját GPU: `dwyt-airouter`, `dwyt-gpu`, helyi Whisper a futtatóban) elkészült, éles kipróbálásra vár. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 21. fejezet döntésnaplójában is).
 
 ## 1. Cél
 
@@ -110,6 +110,7 @@ A felhasználónál fut, kötelező. A régi yt-transcribe API-ból nő ki, egy 
 - **Párosítás:** telepítéskor rövid párosítókódot mutat; a felhasználó ezt beírja a felületen, és a futtató megkapja a saját hosszú tokenjét.
 - **Frissítés:** naponta megnézi, van-e új változat; magától csak akkor frissül, ha ezt a felhasználó bekapcsolta, alapból csak szól. A yt-dlp mindig magától frissül.
 - **Több futtató** is lehet felhasználónként (például otthoni GPU-s és egy VPS). Az első körben egy munkát mindig egy futtató kap: az, amelyik elérhető és tudja a kért módot.
+- **Helyi Whisper:** a futtató a `whisper_url` címen (a llama-swap upstream-címe) éri el a GPU-workert, a `whisper_models` modelleket jelenti be. Ha a GPU-gép nem érhető el, a munka később újrapróbálkozik (megvárja); ha a worker elutasítja vagy hibát jelez, a munka hibával áll le. Másik módra nem vált.
 - **Kikapcsolt futtató:** a munkák várnak (mint a régi rendszerben az Unraidra). Az RSS-figyelés és a postaláda központi, ezért az új videók akkor is megjelennek, csak feldolgozni nem lehet őket.
 
 ## 9. AI-router (`dwyt-airouter`)
@@ -126,6 +127,11 @@ Opcionális, mindig bekapcsolt gépre. A régi `ai-router` LiteLLM + llama-swap 
   Windowsos GPU-gép az első körben csak az „egy gépen minden” változatban.
 - **Ébresztés (Wake-on-LAN):** opcionális lépés az indítóban: ha a GPU-gép nem válaszol, felkelti, és megvárja. Altatás és kikapcsolás nem a rendszer dolga. Ébresztés nélkül: az LLM a LiteLLM-tartalékkal a felhőbe megy (a felhasználó beállítása szerint), a Whisper-munka vár.
 - **Egyetlen modell-leíró fájl** (`models.yaml`): ebből készül a LiteLLM és a llama-swap beállítása, és a GPU-gépen a modellfájlok letöltési listája. A modellneveket így egy helyen kell karbantartani.
+- **A `models.yaml` részei:** a GPU-gép (indító, cím, ébresztés, más GPU-s konténerek), a llama-server és a Whisper konténere, a helyi modellek (név, Hugging Face-fájl, kapcsolók, kontextus), a felhős modellek (a kulcs környezeti változóban), a stabil nevek (`auto`, `osszefoglalo`, `osszefoglalo-helyi`: célmodell, gondolkodás ki/be, tartalék) és további GPU-s konténerek (például a régi rendszer workere). Egy AI-routerhez egy GPU-gép tartozik.
+- **`dwyt-airouter generate`** ebből írja a `llama-swap.yaml`-t, a `litellm.yaml`-t, a llama-server presetjeit (`models.ini`), a letöltési listát (`downloads.json`) és a portokat (`ports.env`). A `models.ini`-t és a `downloads.json`-t kézzel kell a GPU-gépre másolni.
+- **llama.cpp router módban:** egyetlen llama-server konténer, a presetek a `models.ini`-ből, egyszerre egy betöltött modell. A llama-swapban ez egy bejegyzés, és minden presetnév ennek az álneve, így a presetek közötti váltás nem indítja újra a konténert. LiteLLM nélkül a stabil nevekből is preset lesz (a gondolkodás kikapcsolása ekkor a presetben van; tartalék nincs).
+- **Az indítók** Pythonban vannak (`dwyt-airouter container run|stop`, ez a llama-swap `cmd`/`cmdStop` parancsa): csak a már létrehozott konténereket indítják és állítják le, indítás előtt leállítják a többi GPU-s konténert, és amíg a konténer fut, a folyamat is fut. A régi `unraid-container.sh` ezzel kiváltva.
+- **Telepítés:** `/opt/dwyt-airouter` (program, llama-swap, LiteLLM saját környezetben), beállítások `/etc/dwyt-airouter`, `airouter` felhasználó, két systemd-szolgáltatás (`dwyt-llama-swap`, `dwyt-litellm`). A llama-swap és a LiteLLM változata rögzített (a dokumentáció szerinti, kipróbált változat).
 
 ## 10. GPU-gép (`dwyt-gpu`)
 
@@ -135,6 +141,10 @@ Opcionális, NVIDIA GPU-s gépre, igény szerint bekapcsolva.
 - **Modellek letöltése:** `modellek letöltése` parancs: a `models.yaml` listájából a Hugging Face-ről tölti le a GGUF- és Whisper-modelleket, és ellenőrzi a helyet. Kézi másolás is lehetséges.
 - **Platform:** Linux + NVIDIA + Docker; Windows WSL2-vel. macOS-en nincs helyi Whisper (a Docker ott nem éri el a GPU-t; ehhez whisper.cpp vagy MLX kellene, ez későbbi kérdés).
 - **Hálózat:** a GPU-gép portjait tűzfallal csak az AI-router érje el (a llama-server és a worker maga nem kér azonosítást).
+- **Konténerek:** a `compose.yaml` csak létrehozza őket (`docker compose create`), indítani és leállítani az AI-router fogja. `dwyt-llama`: a llama.cpp hivatalos `server-cuda` képe router módban; `dwyt-whisper`: a GPU-worker, helyben építve a repó `worker/` mappájából. Unraidon a két konténer sablonból készül, ugyanezekkel a beállításokkal.
+- **Modellmappa** (NVMe): `gguf/` a llama-servernek, `hf/` a Hugging Face-gyorsítótár a Whispernek, mellette a `models.ini`. Mindkét konténer `/models`-ként látja.
+- **`dwyt-gpu download downloads.json`:** a hiányzó fájlokat tölti le (darabolt GGUF-nél minden részt), előtte ellenőrzi a helyet; ami megvan, azt kihagyja. A beszélőfelismerő modellhez `HF_TOKEN` kell. **`dwyt-gpu check`:** meghajtó, Docker GPU-hozzáféréssel, konténerek, modellmappa.
+- **A worker** a régi `gpu-worker` átvétele változatlan működéssel (egy kérés = egy munka, NDJSON, 10 másodperces szívverés, CUDA-hiba után CPU, ellenőrzőpont a Whisper-lépés után), magyar hibaüzenetekkel.
 
 ## 11. Feldolgozás
 
@@ -191,6 +201,7 @@ A szabályok a régi rendszerből jönnek, felhasználónként beállíthatóan:
 1. A régi rendszer fut tovább.
 2. A dwyt központ új LXC-be (publikus, Apache mögött).
 3. Futtató és AI-router az `ai-router` LXC-ben (a régi LiteLLM és llama-swap helyett vagy mellett, külön porton), GPU-gép az Unraidon az Unraid-indítóval.
+   Átmenetileg két llama-swap osztozik a GPU-n: a dwyt-é a régi konténereket (`llama.cpp`, `yt-transcribe-gpu`) az `other_gpu_containers` között leállítja indítás előtt, a régi `unraid-container.sh` `GPU_CONTAINERS` listájába pedig a dwyt konténerei kerülnek. Egyszerűbb, ha a régi rendszer is a dwyt llama-swapját használja: a régi worker `extra_containers` bejegyzésként kerül bele, és a régi API `WORKER_URL`-je erre mutat.
 4. A régi könyvtár egyszeri behozatala a tulajdonos fiókjába (később, nem sürgős).
 5. Ha a dwyt jól működik, eldől, kell-e még a régi.
 
@@ -201,7 +212,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | Kör | Tartalom | Repók |
 | --- | --- | --- |
 | 1. (kész) | GPU nélküli működő szelet: Google-belépés + meghívás + admin tartalékbelépés; könyvtár sorvédelemmel; futtató párosítása; munkasor a protokoll szerint. A futtató YouTube-feliratot és felhős átírást végez, összefoglalót bármely OpenAI-kompatibilis címmel készít. | central, runner, docs (JSON-sémák) |
-| 2. | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner |
+| 2. (kész, éles kipróbálásra vár) | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner, central |
 | 3. | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
 | 4. | Háttér és kliensek: feliratkozások és postaláda, értesítés (ntfy, Home Assistant), MCP. | central |
 | 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala; fióktörlés a felhasználó által (5.7); a Google utáni kötelező TOTP beállítása (5.5); meghívó e-mailben SMTP-vel. | central |
@@ -219,6 +230,8 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | macOS helyi Whisper | whisper.cpp vagy MLX, diarizálással vagy anélkül. |
 | Windowsos távoli GPU-gép | Saját kis ügynökprogram az indításhoz. |
 | Ollama a GPU-gépen | Modellürítés az Ollama API-jával. |
+| A Whisper-worker képe registryben | Most a GPU-gépen épül (`docker compose build`); kész kép a GitHub Container Registryben (ghcr.io) egyszerűsítené az Unraid-sablont. |
+| llama-swap alias-lista | LiteLLM nélkül a `/v1/models` csak a `llama-server` bejegyzést mutatja, a presetneveket nem; a klienseknél kézzel kell megadni a nevet. |
 | A régi könyvtár behozatala | Formátum és időpont. |
 
 ## 21. Döntésnapló
@@ -271,3 +284,9 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 10.3 | A futtató az ffmpeg-et (`imageio-ffmpeg`) és a `deno`-t is Python-csomagként kapja; mindhárom platformon kézi telepítés nélkül. |
 | 10.4 | Élesben a két adatbázis-szerepkör (`dwyt` tulajdonos, `dwyt_app` sorvédett) jelszó nélkül, peer hitelesítéssel és névleképezéssel csatlakozik. |
 | 10.5 | Az 1. körben a meghívó linkjét az admin másolja ki; SMTP-s küldés, fióktörlés a felhasználó által és a Google utáni kötelező TOTP az 5. körben. |
+| 11.1 | Egy `models.yaml` írja le a GPU-gépet, a konténereket, a helyi és felhős modelleket és a stabil neveket; `dwyt-airouter generate` ebből készíti a llama-swap, a LiteLLM és a llama-server (`models.ini`) beállítását és a letöltési listát. Egy AI-routerhez egy GPU-gép. |
+| 11.2 | A llama-server egyetlen router módú konténer; a presetnevek egy llama-swap-bejegyzés álnevei. LiteLLM nélkül a stabil nevek presetek lesznek, tartalék nélkül. |
+| 11.3 | Az indítók Pythonban, a llama-swap `cmd`/`cmdStop` parancsaként; csak meglévő konténert indítanak és állítanak le, a többi GPU-s konténert (`other_gpu_containers` is) előtte leállítják. Az ébresztés ugyanitt: 30 másodpercenként csomag, amíg a gép nem válaszol. |
+| 11.4 | A GPU-gépen `compose.yaml` (csak létrehozás), a llama.cpp hivatalos képe és a helyben épített Whisper-worker; közös modellmappa `gguf/` és `hf/` almappával; `dwyt-gpu download` és `check`. |
+| 11.5 | A futtató helyi Whisper-módja: `whisper_url`, `whisper_models`, `whisper_timeout_min`; elérhetetlen GPU-gép → később újra, elutasítás vagy worker-hiba → végleges hiba. A futtató bejelenti a `whisper_models` képességet, a központ a kért modell szerint ad munkát, és jelzi, ha egyik futtató sem tudja. |
+| 11.6 | A régi rendszer átmenetileg ugyanazon a GPU-n: kölcsönösen leállítják egymás konténereit, vagy a régi worker a dwyt llama-swapjába kerül (`extra_containers`). |

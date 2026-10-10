@@ -28,10 +28,11 @@ A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas
 {
   "capabilities": {
     "kinds": ["transcribe", "summarize"],
-    "transcribe_modes": ["captions", "cloud"],
+    "transcribe_modes": ["captions", "cloud", "local"],
     "llm_roles": ["public", "private"],
     "allowed_domains": ["youtube.com", "youtu.be"],
-    "local_sources": false
+    "local_sources": false,
+    "whisper_models": ["large-v3", "large-v3-turbo"]
   },
   "runner_version": "0.1.0",
   "tool_versions": {"yt-dlp": "2026.8.19", "deno": "2.9.7"}
@@ -44,9 +45,10 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 {"job_id": 12, "kind": "transcribe", "lease_s": 900, "input": {"source": {...}, "options": {...}}}
 ```
 
-- A központ csak a futtató felhasználójának munkáit adja, és csak olyat, ami a bejelentett képességeknek megfelel: fajta, átírási mód, összefoglalóhoz a szerep (`public`: nyilvános forrás, `private`: saját felvétel), URL-es munkánál az engedélyezett tartományok (pontos gépnév vagy aldomain; `*` = bármi).
+- A központ csak a futtató felhasználójának munkáit adja, és csak olyat, ami a bejelentett képességeknek megfelel: fajta, átírási mód (helyi Whispernél a kért modellnek a `whisper_models` között kell lennie), összefoglalóhoz a szerep (`public`: nyilvános forrás, `private`: saját felvétel), URL-es munkánál az engedélyezett tartományok (pontos gépnév vagy aldomain; `*` = bármi).
 - A futtató a kapott munkát maga is ellenőrzi (fajta, forrás, mód, tartomány), és ami nem fér bele, azt hibával visszaadja. A központ esetleges feltörése így sem tud a futtatóval mást csináltatni, mint ezeket a szűk munkákat.
-- A bejelentett képességeket és verziókat a felület a Futtatók oldalon mutatja.
+- A bejelentett képességeket és verziókat a felület a Futtatók oldalon mutatja. Ha egy várakozó munkát egyik futtató sem tud elvégezni, a Munkák oldal ezt jelzi.
+- Új, ismeretlen képességmezőt a központ figyelmen kívül hagy; így a futtató a protokoll verziójának emelése nélkül bővíthet.
 - A munka bemenete: [transcribe-input](../schemas/transcribe-input.schema.json), [summarize-input](../schemas/summarize-input.schema.json). Az összefoglaló utasítását a futtató írja; a verziószámát (`prompt_version`) az eredménnyel együtt visszaküldi.
 
 ## Szívverés és megszakítás
@@ -56,7 +58,7 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 - `cancel: true`: a felhasználó megszakította; a futtató a következő lépésnél abbahagyja, és `fail`-lel zárja (a központ megszakítottnak jelöli).
 - `404`/`409`: a munka már nem ezé a futtatóé (törölték, vagy lejárt a lízing, és más kapta meg); a futtató abbahagyja, és nem ad le eredményt.
 - Lejárt lízing (a futtató eltűnt): a munka visszakerül a sorba; a próbálkozások száma nő, és a 6. után a munka hibával áll le.
-- A lépések nevei (`download`, `captions`, `prepare-audio`, `upload`, `transcribe`, `summarize`, `write`) a felületen magyarul látszanak.
+- A lépések nevei (`download`, `captions`, `prepare-audio`, `upload`, `transcribe`, `summarize`, `write`; helyi Whispernél még `waiting-for-gpu`, `load-audio`, `align`, `diarize`) a felületen magyarul látszanak.
 
 ## Eredmény leadása
 
@@ -76,9 +78,16 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 - `next_step`: ez a mód ennél a forrásnál nem működik (például nincs felirat a videó nyelvén); a feliratkozások láncolatában (4. kör) a következő mód jön, addig a központ `never`-ként kezeli.
 - A hibaüzenet magyarul, a felhasználónak szól; kulcsot vagy belső részletet nem tartalmazhat.
 
+## Helyi Whisper (a futtató és a GPU-worker között)
+
+Ez nem a központ protokollja, hanem a futtató és a felhasználó saját GPU-workere közötti kapcsolat (dwyt-airouter, dwyt-gpu); a központ csak a `local` módot és a `whisper_models` képességet látja.
+
+- `POST {whisper_url}/transcribe?model=large-v3&language=hu&diarize=true&num_speakers=2`, a törzs a 16 kHz-es mono FLAC. A `whisper_url` a llama-swap upstream-címe, például `http://AI-ROUTER:8080/upstream/whisper`.
+- Az egész munka EGY kérés: amíg nyitva van, a llama-swap a GPU-t a workernél tartja, és az LLM-kéréseket mögé sorolja. A válasz NDJSON: `{"stage": ...}` legalább 10 másodpercenként, a végén `{"result": {...}}` vagy `{"error": "..."}`. A kapcsolat bontása leállítja a munkát a workeren, és felszabadítja a GPU-t.
+- A futtató hibakezelése: elérhetetlen worker, a llama-swap `502`/`503`/`504`-e vagy félbeszakadt folyam → `retry: later` (megvárja a GPU-gépet); a worker elutasítása (`4xx`) vagy hibasora → `never`. Másik módra soha nem vált.
+
 ## Később
 
 - **Bemeneti fájl a központon át** (3. kör): böngészős feltöltésnél a munka egy rövid életű letöltési címet kap (`GET /runner/v1/jobs/{job_id}/media`, Range-kérésekkel).
 - **Helyi forrás** (3. kör): a futtató a figyelt mappából maga kezdeményez munkát: `POST /runner/v1/local-items {"sha256", "name", "size", "options"}`; a fájl el sem hagyja a gépet.
-- **Helyi Whisper** (2. kör): `transcribe_modes`-ban `local`; a futtató a llama-swap felől éri el a GPU-workert.
 - Kéréskorlát futtatónként; a GPU-gép ébredésének jelzése a felületen.

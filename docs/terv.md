@@ -58,7 +58,7 @@ Adatfolyamok:
 ## 5. Felhasználók, belépés, jogosultságok
 
 - **Regisztrációs mód** telepítéskor: nyitott / meghívásos / zárt. A tulajdonos példánya meghívásos.
-- **Meghívás:** az admin felvesz egy e-mail-címet; a rendszer egyszer használható, 7 napig érvényes meghívólinket küld. Belépni csak az a Google-fiók tud, amelynek ellenőrzött e-mail-címe egyezik a meghívóval.
+- **Meghívás:** az admin felvesz egy e-mail-címet; a rendszer egyszer használható, 7 napig érvényes meghívólinket készít, és e-mailben elküldi (ha a telepítő adott SMTP-szervert), különben az admin másolja ki és küldi el. Belépni csak az a Google-fiók tud, amelynek ellenőrzött e-mail-címe egyezik a meghívóval.
 - **Belépés Google-lel** (OpenID Connect, „Web application” típusú OAuth-kliens, a nyilvános HTTPS-címre visszairányítva). A fiókot a Google állandó azonosítója (`sub`) köti, nem az e-mail-cím.
 - **Második faktor:** a Google-fiók adja; telepítési beállítással kötelezővé tehető egy saját TOTP is a Google-belépés után.
 - **Admin tartalékbelépés:** jelszó + TOTP, csak az admin fióknak, Google-kiesés vagy fióktiltás esetére.
@@ -71,7 +71,9 @@ Adatfolyamok:
 
 ## 6. Könyvtár
 
-- Felhasználónként külön: elemek, átiratok (elemenként több, egy fő), fordítások, összefoglaló-változatok, keresési darabok, címkék, jegyzetek, beszélőnevek. Minden táblán ott a felhasználó; javaslat (megerősítendő): az adatbázis-szintű sorvédelem (PostgreSQL row-level security) második védvonalként is őrizze a szétválasztást.
+- Felhasználónként külön: elemek, átiratok (elemenként több, egy fő), fordítások, összefoglaló-változatok, keresési darabok, címkék, jegyzetek, beszélőnevek. Minden felhasználói táblán ott a felhasználó, és a szétválasztást két védvonal őrzi:
+  - *az alkalmazás:* minden lekérdezés a felhasználóra szűr;
+  - *az adatbázis (sorvédelem, PostgreSQL row-level security):* a táblákon szabály áll (`USING`/`WITH CHECK user_id = current_setting('dwyt.user_id')`), és a központ minden kérés tranzakciójának elején `SET LOCAL dwyt.user_id`-t állít. Így egy kimaradt szűrő sem ad ki idegen sort, beállítás nélkül pedig a lekérdezés hibát ad. Az alkalmazás nem tulajdonos, a szabályt meg nem kerülő szerepkörrel kapcsolódik; a migrációk a tulajdonos szerepkörrel futnak. A szándékosan felhasználók közötti munkák (újrahasznosítás keresése, RSS-figyelés, admin statisztika) külön, szűk kódrészben, külön szerepkörrel futnak. Egy teszt szándékosan szűrő nélkül kérdez, és ellenőrzi, hogy idegen sor nem jön vissza.
 - **Saját felvétel** (feltöltés, figyelt mappa) és **nyilvános forrás** (YouTube, URL) megkülönböztetése megmarad: saját felvétel csak a felhasználó helyi LLM-jéhez mehet automatikusan, felhős LLM-hez csak a felhasználó kifejezett beállításával.
 - Hang és videó a központban nem tárolódik (a központon átmenő feltöltés csak addig, amíg a futtató át nem vette; 8. fejezet).
 - A régi tervből még nem megvalósított, de ide tartozó funkciók: címkék, jegyzet, beszélők elnevezése, a teljes könyvtár exportja (Markdown, JSON).
@@ -86,6 +88,10 @@ Ha egy felhasználó olyan munkát kér, amit valaki már elvégzett ugyanazon a
 - **Feltöltés:** csak akkor, ha az eredeti feltöltő ezt engedi; saját felvételnél alapból nem engedi. (Az eredményt csak az kaphatja meg, akinél ugyanaz a fájl van; a tartalom így nem szivárog, de az kiderülhetne, hogy a fájl már járt a rendszerben.)
 - Az átvett tartalom jelölve van („átvett átirat”), de nem derül ki, kitől származik.
 - Az átvevő nem fizet érte (az eredeti kérő fizetett); ezt a felhasználók köre miatt elfogadjuk.
+- **Tárolás: közös, módosíthatatlan eredménytár.** Az átirat, a fordítás, az összefoglaló és a belőlük készült keresési darabok (vektorokkal) egyszer tárolódnak, a lépés kulcsa szerint. A felhasználó könyvtárbejegyzése csak hivatkozik rájuk; a személyes adatok (címkék, jegyzet, beszélőnevek, melyik a fő átirat, az összefoglaló választott változata) a felhasználó saját, sorvédett tábláiban vannak. A keresés a felhasználó könyvtárbejegyzésein át éri el a darabokat.
+- Az eredménytár nem a felhasználói sorvédelem alatt van, ezért csak a könyvtárbejegyzésen át, illetve az újrahasznosítás szűk kódrészén át olvasható.
+- A feltöltésből készült eredmény a tárban „privát” jelölést kap; más csak az eredeti feltöltő engedélyével hivatkozhat rá.
+- **Törlés:** ha egy eredményre már senki nem hivatkozik, a rendszer törli (fióktörlésnél is így marad meg a másiknál az átadott eredmény).
 
 ## 8. Futtató (`dwyt-runner`)
 
@@ -159,9 +165,21 @@ Felhasználónként, a felületen létrehozott, névvel ellátott, visszavonhat�
 
 ## 16. Értesítés
 
-Nyitott kérdés (19. fejezet). A régi rendszerben Home Assistant volt; többfelhasználós rendszerben felhasználónként választható csatorna kell (például web push, ntfy, Home Assistant webhook, e-mail).
+Felhasználónként választható csatorna:
+
+- **ntfy:** a felhasználó telepíti az ntfy alkalmazást, és megad egy véletlen nevű témát (az ntfy.sh-n vagy saját ntfy-szerveren).
+- **Home Assistant webhook:** a hozzáértőknek, a régi rendszer értesítéseinek mintájára.
+- **Később:** web push (a telefonon a kezdőképernyőre tett oldallal, iPhone-on is).
+- **E-mail:** csak meghívóhoz, és csak ha a telepítő megad SMTP-szervert. Ha nincs, az admin kimásolja a meghívólinket, és maga küldi el.
+
+A szabályok a régi rendszerből jönnek, felhasználónként beállíthatóan: kézi beküldésről azonnal; feliratkozásokról napi összesítő vagy csatornánként azonnal; hibáról mindig.
 
 ## 17. Nyilvános üzemeltetés
+
+- **Kvóták** (alapértékek; az admin felhasználónként felülírhatja; nyitott regisztrációnál kötelezőek, meghívásosnál ugyanezek az alapértékek):
+  - böngészős feltöltés legfeljebb 2 GB fájlonként, egyszerre legfeljebb 2 várakozó feltöltés felhasználónként;
+  - felhasználónként 2 GB szöveg és vektor (egy óra átirat vektorokkal kb. 0,3–0,5 MB);
+  - a központi munkasorban (indexelés) a felhasználók felváltva kerülnek sorra, így egy nagy behúzás nem akasztja meg a többieket.
 
 - **Apache reverse proxy:** saját (al)domain, Let's Encrypt-tanúsítvány, név szerinti virtual host (a meglévő proxytunnel-beállítástól külön); `LimitRequestBody` a feltöltési korláthoz igazítva (az újabb Apache-ok alapból 1 GB-ra korlátoznak), `ProxyTimeout` a hosszú feltöltésekhez; `X-Forwarded-Proto https`, és a központ csak az Apache címéről fogadja el a továbbított kliens-IP-t; HSTS; fail2ban a belépés ellen.
 - A sütik `Secure` jelzővel; a passkey (következő kör) a HTTPS miatt itt már lehetséges.
@@ -180,16 +198,12 @@ Nyitott kérdés (19. fejezet). A régi rendszerben Home Assistant volt; többfe
 
 | Kérdés | Mit jelent |
 | --- | --- |
-| Értesítés | Felhasználónként milyen csatorna: web push, ntfy, Home Assistant webhook, e-mail. |
-| Kvóták | Felhasználónkénti tárhely, munkaszám, feltöltési méret; nyitott regisztrációnál kötelező. |
-| Újrahasznosítás adatmodellje | Közös, tartalom szerint címzett tároló vagy másolás felhasználónként; törléskor mi marad. |
 | A futtató helyi feltöltő oldala | Hogyan lép be a felhasználó a saját gépén futó oldalra (párosított futtatónál helyi token). |
 | `deno` a futtatóhoz | Telepíthető-e pip-csomagként minden platformon; ha nem, a futtató tölti le. |
 | macOS helyi Whisper | whisper.cpp vagy MLX, diarizálással vagy anélkül. |
 | Windowsos távoli GPU-gép | Saját kis ügynökprogram az indításhoz. |
 | Ollama a GPU-gépen | Modellürítés az Ollama API-jával. |
 | A régi könyvtár behozatala | Formátum és időpont. |
-| Sorvédelem az adatbázisban | PostgreSQL row-level security második védvonalként (6. fejezet). |
 
 ## 20. Döntésnapló
 
@@ -228,3 +242,7 @@ Nyitott kérdés (19. fejezet). A régi rendszerben Home Assistant volt; többfe
 | 7.1 | Protokoll: HTTPS long-poll; munka lépésenként, képességek szerint; lízing és szívverés. |
 | 7.2 | Verziózott protokoll (aktuális + előző); a futtató naponta ellenőriz, önfrissítés csak bekapcsolva; a yt-dlp mindig frissül. |
 | 8.1 | Az MCP a nyilvános címen érhető el, felhasználónkénti tokennel és kéréskorláttal. |
+| 8.2 | Sorvédelem: PostgreSQL row-level security a felhasználói táblákon, második védvonalként; felhasználók közötti munkák külön szerepkörrel. |
+| 8.3 | Értesítés: ntfy és Home Assistant webhook az első körben, web push később; e-mail csak meghívóhoz, ha van SMTP, különben az admin másolja a linket. |
+| 8.4 | Kvóták: 2 GB-os böngészős feltöltés, egyszerre 2; 2 GB szöveg és vektor felhasználónként; felváltva kiszolgált központi sor; az admin felülírhatja. |
+| 8.5 | Újrahasznosítás közös, módosíthatatlan eredménytárral (átirat, fordítás, összefoglaló, keresési darabok); személyes adatok a felhasználó tábláiban; hivatkozás nélküli eredmény törlődik. |

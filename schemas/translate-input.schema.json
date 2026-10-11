@@ -6,6 +6,7 @@
   "type": "object",
   "required": ["role", "segments"],
   "properties": {
+    "model": {"type": "string", "description": "chosen on the item page: one of the runner's llm_models for this role; absent = the runner's own choice by role"},
     "role": {"enum": ["public", "private"], "description": "public: a public source; private: an own recording (only the runner's private model)"},
     "source_language": {"type": ["string", "null"]},
     "target": {"type": "string", "description": "always hu for now"},

@@ -72,6 +72,22 @@
           "maxItems": 20,
           "title": "Source Kinds",
           "type": "array"
+        },
+        "llm_models": {
+          "additionalProperties": {
+            "items": {
+              "maxLength": 100,
+              "type": "string"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "maxProperties": 5,
+          "propertyNames": {
+            "maxLength": 253
+          },
+          "title": "Llm Models",
+          "type": "object"
         }
       },
       "title": "Capabilities",

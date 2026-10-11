@@ -33,7 +33,8 @@ A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas
     "allowed_domains": ["youtube.com", "youtu.be"],
     "local_sources": false,
     "whisper_models": ["large-v3", "large-v3-turbo"],
-    "source_kinds": ["upload", "local"]
+    "source_kinds": ["upload", "local"],
+    "llm_models": {"public": ["osszefoglalo", "cloud/okos"], "private": ["osszefoglalo-helyi"]}
   },
   "runner_version": "0.1.0",
   "tool_versions": {"yt-dlp": "2026.8.19", "deno": "2.9.7"}
@@ -48,16 +49,19 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 {"job_id": 12, "kind": "transcribe", "lease_s": 900, "input": {"source": {...}, "options": {...}}}
 ```
 
-- A központ csak a futtató felhasználójának munkáit adja, és csak olyat, ami a bejelentett képességeknek megfelel: fajta, átírási mód (helyi Whispernél a kért modellnek a `whisper_models` között kell lennie), összefoglalóhoz a szerep (`public`: nyilvános forrás, `private`: saját felvétel), URL-es munkánál az engedélyezett tartományok (pontos gépnév vagy aldomain; `*` = bármi).
+- A központ csak a futtató felhasználójának munkáit adja, és csak olyat, ami a bejelentett képességeknek megfelel: fajta, átírási mód (helyi Whispernél a kért modellnek a `whisper_models` között kell lennie), összefoglalóhoz és fordításhoz a szerep (`public`: nyilvános forrás, `private`: saját felvétel), és ha a munkán választott modell van (`model`), annak a futtató `llm_models` listájában kell lennie az adott szerepnél; URL-es munkánál az engedélyezett tartományok (pontos gépnév vagy aldomain; `*` = bármi).
 - A futtató a kapott munkát maga is ellenőrzi (fajta, forrás, mód, tartomány), és ami nem fér bele, azt hibával visszaadja. A központ esetleges feltörése így sem tud a futtatóval mást csináltatni, mint ezeket a szűk munkákat.
 - A bejelentett képességeket és verziókat a felület a Futtatók oldalon mutatja. Ha egy várakozó munkát egyik futtató sem tud elvégezni, a Munkák oldal ezt jelzi.
 - Új, ismeretlen képességmezőt a központ figyelmen kívül hagy; így a futtató a protokoll verziójának emelése nélkül bővíthet.
 - A munka bemenete: [transcribe-input](../schemas/transcribe-input.schema.json), [summarize-input](../schemas/summarize-input.schema.json), [translate-input](../schemas/translate-input.schema.json).
-- **Fordítás** (`translate`, a 3. körtől): az átirat szegmensei sorszámmal; a futtató a sorszámokat megtartva adja vissza a magyar sorokat ([translate-result](../schemas/translate-result.schema.json)), a ki nem fordított sorokat kihagyja, és a számukat a `missing` mezőben jelzi. A modellt a szerep szerint maga választja (`private` → `llm_private_model`; `public` → `llm_translate_model`, ha van, különben `llm_public_model`). Az összefoglaló utasítását a futtató írja; a verziószámát (`prompt_version`) az eredménnyel együtt visszaküldi.
+- **Fordítás** (`translate`, a 3. körtől): az átirat szegmensei sorszámmal; a futtató a sorszámokat megtartva adja vissza a magyar sorokat ([translate-result](../schemas/translate-result.schema.json)), a ki nem fordított sorokat kihagyja, és a számukat a `missing` mezőben jelzi. A modellt a szerep szerint maga választja (`private` → `llm_private_model`; `public` → `llm_translate_model`, ha van, különben `llm_public_model`).
+- **Választott modell** (3c): az `llm_models` képesség szerepenként sorolja fel, mely modelleket ajánlja fel a futtató a felhasználónak (az alapmodellek és az `llm_models`, illetve saját felvételhez az `llm_private_models` beállítás). Az elemoldalon választott modell a munka bemenetében `model` mezőként érkezik; a futtató csak a saját listájából fogad el modellt, mást végleges hibával (`never`) visszaad. `model` nélkül a szerep szerinti alapmodell dolgozik. Az összefoglaló utasítását a futtató írja; a verziószámát (`prompt_version`) az eredménnyel együtt visszaküldi.
 
 ## Szívverés és megszakítás
 
 `POST /runner/v1/jobs/{job_id}/heartbeat {"stage": "captions", "progress": {...}}` legalább a lízing harmadánként (a futtató 60 másodpercenként, és minden új lépésnél azonnal küldi). Válasz: `{"lease_s": 900, "cancel": false}`.
+
+A `progress` hosszú LLM-munkáknál (3c): `{"part": 3, "parts": 12, "model": "forditas"}` (fordításnál a köteg, darabolt összefoglalónál a lépés sorszáma); a felület az elemoldalon és a Munkák oldalon mutatja. Legfeljebb 5 másodpercenként küldi.
 
 - `cancel: true`: a felhasználó megszakította; a futtató a következő lépésnél abbahagyja, és `fail`-lel zárja (a központ megszakítottnak jelöli).
 - `404`/`409`: a munka már nem ezé a futtatóé (törölték, vagy lejárt a lízing, és más kapta meg); a futtató abbahagyja, és nem ad le eredményt.

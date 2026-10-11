@@ -6,6 +6,7 @@
   "type": "object",
   "required": ["role", "transcript"],
   "properties": {
+    "model": {"type": "string", "description": "chosen on the item page: one of the runner's llm_models for this role; absent = the runner's own choice by role"},
     "role": {"enum": ["public", "private"], "description": "public source or own recording: the runner picks llm_public_model or llm_private_model"},
     "language": {"type": "string", "description": "language of the summary, e.g. hu"},
     "meta": {

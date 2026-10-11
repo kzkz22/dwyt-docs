@@ -218,7 +218,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 1. (kész) | GPU nélküli működő szelet: Google-belépés + meghívás + admin tartalékbelépés; könyvtár sorvédelemmel; futtató párosítása; munkasor a protokoll szerint. A futtató YouTube-feliratot és felhős átírást végez, összefoglalót bármely OpenAI-kompatibilis címmel készít. | central, runner, docs (JSON-sémák) |
 | 2. (kész, élesben fut) | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner, central |
 | 3. (kész; döntések: 13.1–13.6) | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
-| 3c. (javaslat) | Elemszintű hiányok a régi webuihoz képest: átirat letöltése TXT/SRT-ben; összefoglaló-változatok (lista, aktuális kiválasztása, Markdown-letöltés); fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló választott modellel; szűrés és összefoglaló-előnézet a Könyvtár oldalon; tömeges pótlás (összefoglaló, fordítás, indexelés); a fordítás haladásának kijelzése. | central, runner |
+| 3c. (kész; döntések: 14.1–14.5) | Elemszintű hiányok a régi webuihoz képest: átirat letöltése TXT/SRT-ben; összefoglaló-változatok (lista, aktuális kiválasztása, Markdown-letöltés); fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló választott modellel; szűrés és összefoglaló-előnézet a Könyvtár oldalon; tömeges pótlás (összefoglaló, fordítás, indexelés); a fordítás haladásának kijelzése. | central, runner |
 | 4. | Háttér és kliensek: feliratkozások és postaláda, értesítés (ntfy, Home Assistant), MCP. | central |
 | 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala; fióktörlés a felhasználó által (5.7); a Google utáni kötelező TOTP beállítása (5.5); meghívó e-mailben SMTP-vel. | central |
 
@@ -238,7 +238,6 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | A Whisper-worker képe registryben | Most a GPU-gépen épül (`docker compose build`); kész kép a GitHub Container Registryben (ghcr.io) egyszerűsítené az Unraid-sablont. |
 | llama-swap alias-lista | LiteLLM nélkül a `/v1/models` csak a `llama-server` bejegyzést mutatja, a presetneveket nem; a klienseknél kézzel kell megadni a nevet. |
 | A régi könyvtár behozatala | Formátum és időpont. |
-| A 3c rész | Javaslat (2026. október 11.): a régi webui elemszintű funkciói a 4. kör előtt; a tulajdonos jóváhagyására vár. |
 
 ## 21. Döntésnapló
 
@@ -286,7 +285,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 9.3 | GitHub Actions minden repóban; a futtató Linuxon, Windowson és macOS-en tesztelve. |
 | 9.4 | Az 1. körben új Proxmox LXC, eleinte csak belső hálózaton; internetre átnézés után. |
 | 10.1 | Az összefoglaló utasítását és darabolását a futtató írja; a központ a szerkezetes átiratot és a szerepet (`public`/`private`) küldi, a futtató az utasítás verzióját visszaküldi. |
-| 10.2 | A futtató a szerep szerint a saját beállításából választ modellt (`llm_public_model`, `llm_private_model`); a központ modellnevet nem ismer. |
+| 10.2 | A futtató a szerep szerint a saját beállításából választ modellt (`llm_public_model`, `llm_private_model`); a központ modellnevet nem ismer. (Kiegészítve: 14.2.) |
 | 10.3 | A futtató az ffmpeg-et (`imageio-ffmpeg`) és a `deno`-t is Python-csomagként kapja; mindhárom platformon kézi telepítés nélkül. |
 | 10.4 | Élesben a két adatbázis-szerepkör (`dwyt` tulajdonos, `dwyt_app` sorvédett) jelszó nélkül, peer hitelesítéssel és névleképezéssel csatlakozik. |
 | 10.5 | Az 1. körben a meghívó linkjét az admin másolja ki; SMTP-s küldés, fióktörlés a felhasználó által és a Google utáni kötelező TOTP az 5. körben. |
@@ -305,3 +304,8 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 13.6 | A 3. kör két részben: 3a fordítás, keresés, újrahasznosítás; 3b feltöltés, figyelt mappa, kvóták. |
 | 13.7 | Saját felvétel megvalósítása: a böngészős feltöltés a központ `STAGING_DIR`-jébe kerül (egy fájl tartalmanként), a futtató a `/runner/v1/jobs/{id}/media` címről tölti le és SHA-256-tal ellenőrzi; az eredmény leadása után (legkésőbb 7 nap múlva) törlődik. A figyelt mappa fájlját a futtató a `local-items` végponton jelenti be; a munkát csak ő kaphatja meg. A közös forrás feltöltésnél nem tárol fájlnevet (a név az elem címe). |
 | 13.8 | Kvóták: tárhely (a felhasználó elemeihez kötött szöveg és vektor, az átvett eredmények is), fájlméret, egyszerre várakozó feltöltések; az admin felhasználónként felülírhatja a két MB-os korlátot; a felhasználó a Beállítások oldalon látja. Kereten felül új munka nem indul. |
+| 14.1 | A 3c rész a 4. kör előtt (a tulajdonos jóváhagyta, 2026. október 11.): átirat letöltése TXT/SRT-ben eredetiben és magyarul; összefoglaló-változatok listája, az aktuális kiválasztása, Markdown-letöltés, időbélyeg-linkek; fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló és fordítás választott modellel; a Könyvtár szűrése (cím, csatorna, URL; nyilvános / saját / összefoglaló nélkül / folyamatban) és összefoglaló-előnézet; a hiányzó összefoglalók, fordítások és az index pótlása a Munkák oldalon; a hosszú munkák haladása. |
+| 14.2 | Választható modell: a futtató szerepenként felajánlja a modelljeit (`llm_models` képesség: az alapmodellek, az `llm_models`, saját felvételhez csak `llm_private_model` és az `llm_private_models`, amelyeket a felhasználó kifejezetten engedélyez). A felület a felhasználó futtatóinak listáiból kínál; a választott modellű munkát csak az a futtató kapja meg, amelyik felajánlja, és a futtató is ellenőrzi. |
+| 14.3 | Fő átirat váltásakor az elem a választott átirat saját összefoglalóját és fordítását használja; ami hiányzik, sorba kerül (összefoglaló, ha az elemnek volt; fordítás a felhasználó beállítása szerint). Átirat törlésekor a hozzá tartozó összefoglaló- és fordításhivatkozások is törlődnek; fő átiratnál a legújabb másik veszi át a helyét. |
+| 14.4 | Hivatkozás nélküli közös eredmény (átirat, összefoglaló, fordítás) egy óra után törlődik az óránkénti takarításban; amelyikre más felhasználó vagy várakozó munka még hivatkozik, megmarad. |
+| 14.5 | Újraírás: nyilvános forrásnál előbb átvehető eredményt keres; figyelt mappás felvételt az a futtató kap, amelyiknél a fájl van; böngészőből feltöltött felvételt újra fel kell tölteni (a központ nem tartja meg). Haladás: a futtató a szívveréssel küldi (`part`/`parts`/`model`), az elemoldal 5 másodpercenként frissíti, és a munka végén újratölt. |

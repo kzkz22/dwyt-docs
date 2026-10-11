@@ -193,6 +193,10 @@ A szabályok a régi rendszerből jönnek, felhasználónként beállíthatóan:
 
 - **Apache reverse proxy:** saját (al)domain, Let's Encrypt-tanúsítvány, név szerinti virtual host (a meglévő proxytunnel-beállítástól külön); `LimitRequestBody` a feltöltési korláthoz igazítva (az újabb Apache-ok alapból 1 GB-ra korlátoznak), `ProxyTimeout` a hosszú feltöltésekhez; `X-Forwarded-Proto https`, és a központ csak az Apache címéről fogadja el a továbbított kliens-IP-t; HSTS; fail2ban a belépés ellen.
 - A sütik `Secure` jelzővel; a passkey (következő kör) a HTTPS miatt itt már lehetséges.
+- **Kéréskorlát a belépés nélkül hívható végpontokon** (a központban, a kliens címe szerint): admin-belépés (jelszó és kód együtt) 10 / 5 perc, Google-belépés indítása 30 / 5 perc, meghívólink 30 / 5 perc, futtató-párosítás indítása 10 / 10 perc. A hibás admin-belépés `401`-et, a korlát `429`-et ad; ezekből az Apache-gépen futó fail2ban tilt.
+- A központ 8000-es portját tűzfal (Proxmox) csak az Apache-gép felől engedi; a `FORWARDED_ALLOW_IPS` az Apache-gép címe.
+- A belépőoldal hibaüzenetei csak kódok alapján jelennek meg; az URL-ből érkező szöveg nem kerül az oldalra.
+- **Átnézés (2026. október 11.):** a belépés (Google OIDC + PKCE, a böngészőhöz kötött állapot, egyszer használható meghívó, admin jelszó + visszajátszás ellen védett TOTP, fokozódó zárolás), a munkamenetek (csak a token hash-e tárolva, `HttpOnly`, `Secure`, `SameSite=Lax`, CSRF-token minden módosító kérésen), a sorvédelem (külön, szabályt meg nem kerülő szerepkör, teszttel), a futtatóprotokoll (hash-elt token, párosítás csak bejelentkezett jóváhagyással, korlátozott próbálkozás) és a fejlécek (CSP, HSTS, `nosniff`, `frame-ancestors 'none'`) rendben. Javítva: kéréskorlátok, naplózott hibás belépés, fail2ban, tűzfal, kódolt hibaüzenetek, a `Require ip` helyőrző miatti Apache-hiba.
 - **Adatkezelés (GDPR):** a központ üzemeltetője adatkezelő a felhasználók adataira és a feltöltött felvételekben szereplő harmadik személyekre is. Adatvédelmi tájékoztató, fióktörlés, export kell.
 - Mentés: a központ adatbázisa (a tulajdonosnál a Proxmox-mentés a PBS-re).
 
@@ -219,7 +223,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 
 - Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
 - **Cím:** `dwyt.iodate.date` (a tulajdonos `iodate.date` domainjének aldomainje), az Apache-on külön virtual hosttal és Let's Encrypt-tanúsítvánnyal. Fejlesztés alatt a Google-belépés `http://localhost` visszairányítással is kipróbálható.
-- **Hol fut az 1. körben:** új Proxmox LXC (Debian, PostgreSQL 17 + `pgvector`, systemd), eleinte csak a belső hálózaton, tesztfelhasználókkal. Az internetre akkor kerül ki, amikor a belépés, a sorvédelem és az Apache-beállítás kész és át van nézve.
+- **Hol fut az 1. körben:** új Proxmox LXC (Debian, PostgreSQL 17 + `pgvector`, systemd). 2026. október 11. óta az interneten is elérhető (átnézés: 17. fejezet).
 - **Automatikus tesztelés** (GitHub Actions) minden repóban az 1. körtől: tesztek, ruff, pip-audit; a futtató tesztjei Linuxon, Windowson és macOS-en is.
 
 ## 20. Nyitott kérdések
@@ -290,3 +294,4 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 11.4 | A GPU-gépen `compose.yaml` (csak létrehozás), a llama.cpp hivatalos képe és a helyben épített Whisper-worker; közös modellmappa `gguf/` és `hf/` almappával; `dwyt-gpu download` és `check`. |
 | 11.5 | A futtató helyi Whisper-módja: `whisper_url`, `whisper_models`, `whisper_timeout_min`; elérhetetlen GPU-gép → később újra, elutasítás vagy worker-hiba → végleges hiba. A futtató bejelenti a `whisper_models` képességet, a központ a kért modell szerint ad munkát, és jelzi, ha egyik futtató sem tudja. |
 | 11.6 | A régi rendszer átmenetileg ugyanazon a GPU-n: kölcsönösen leállítják egymás konténereit, vagy a régi worker a dwyt llama-swapjába kerül (`extra_containers`). |
+| 12.1 | A központ nyilvános (2026. október 11.). Védelem: kéréskorlát a belépés nélküli végpontokon (a központban), fail2ban az Apache-gépen a `401`/`429` válaszokra, tűzfal a központ portja előtt, a kliens címét csak az Apache-gépről fogadja el. |

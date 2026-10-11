@@ -23,7 +23,7 @@ A dwyt videók és hangfelvételek átiratát (időbélyeggel, beszélőkkel), m
 
 ## Állapot
 
-Az 1. kör kész: a központ ([dwyt-central](https://github.com/kzkz22/dwyt-central)) és a futtató ([dwyt-runner](https://github.com/kzkz22/dwyt-runner)) Google-belépéssel, meghívóval, sorvédett könyvtárral, YouTube-felirattal, felhős átírással és összefoglalóval. A 2. kör (saját GPU) is elkészült: az AI-router ([dwyt-airouter](https://github.com/kzkz22/dwyt-airouter): `models.yaml`, llama-swap, LiteLLM, indítók, ébresztés), a GPU-gép ([dwyt-gpu](https://github.com/kzkz22/dwyt-gpu): llama-server, Whisper-worker, modellletöltés) és a helyi Whisper a futtatóban; éles kipróbálásra vár. Következik a 3. kör: fordítás, keresés, újrahasznosítás.
+Az 1. kör kész: a központ ([dwyt-central](https://github.com/kzkz22/dwyt-central)) és a futtató ([dwyt-runner](https://github.com/kzkz22/dwyt-runner)) Google-belépéssel, meghívóval, sorvédett könyvtárral, YouTube-felirattal, felhős átírással és összefoglalóval. A 2. kör (saját GPU) is elkészült: az AI-router ([dwyt-airouter](https://github.com/kzkz22/dwyt-airouter): `models.yaml`, llama-swap, LiteLLM, indítók, ébresztés), a GPU-gép ([dwyt-gpu](https://github.com/kzkz22/dwyt-gpu): llama-server, Whisper-worker, modellletöltés) és a helyi Whisper a futtatóban; élesben működik. Következik a 3. kör: fordítás, keresés, újrahasznosítás.
 
 ## Az ábra frissítése
 

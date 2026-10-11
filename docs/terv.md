@@ -180,6 +180,12 @@ Megvalósítás (4a, 2026. október 11.):
 
 Felhasználónként, a felületen létrehozott, névvel ellátott, visszavonható tokenekkel (az adatbázisban csak a hash-ük; létrehozáskor egyszer látszanak). Tokenenkénti jogkör: csak olvasás / indítás is; saját felvételekkel / nélkülük. A `/mcp` a nyilvános címen érhető el, mert a felhasználók kívülről használják; tokennel és kéréskorláttal.
 
+Megvalósítás (4c, 2026. október 11.):
+- `/mcp`: Streamable HTTP, állapot nélkül, JSON-válaszokkal, a hivatalos `mcp` csomaggal (a régi webui szerint). Eszközök magyarul: `kereses`, `atirat`, `osszefoglalo`, `legutobbiak`; indításra jogosult tokennel `atiras_inditasa` és `munka_allapota` is.
+- Tokenek a Beállítások oldalon: név, „átírást is indíthat”, „a saját felvételeimet is láthatja”; legfeljebb 20; a központ csak a lenyomatot tárolja, a token egyszer látszik; visszavonható. A hívó felhasználó minden lekérdezésnél a saját munkamenetével (sorvédelem) fut.
+- Az `atiras_inditasa` alapból YouTube-feliratot kér (nem minden felhasználónak van GPU-ja); helyi Whisper kérésre, felhő csak kifejezett kérésre. Ugyanaz a beküldési és újraírási kód fut, mint a felületen (átvétel, kvóta, futó munka ellenőrzése).
+- Kéréskorlát tokenenként (300 / 5 perc), hibás tokenre címenként (20 / 5 perc); a hibás token `401`-ét a fail2ban is figyeli.
+
 ## 16. Értesítés
 
 Felhasználónként választható csatorna:
@@ -232,7 +238,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 2. (kész, élesben fut) | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner, central |
 | 3. (kész; döntések: 13.1–13.6) | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
 | 3c. (kész; döntések: 14.1–14.5) | Elemszintű hiányok a régi webuihoz képest: átirat letöltése TXT/SRT-ben; összefoglaló-változatok (lista, aktuális kiválasztása, Markdown-letöltés); fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló választott modellel; szűrés és összefoglaló-előnézet a Könyvtár oldalon; tömeges pótlás (összefoglaló, fordítás, indexelés); a fordítás haladásának kijelzése. | central, runner |
-| 4. (4a, 4b kész: 15.1–15.6) | Háttér és kliensek: 4a feliratkozások és postaláda; 4b értesítés (ntfy, Home Assistant); 4c MCP. | central |
+| 4. (kész: 15.1–15.8) | Háttér és kliensek: 4a feliratkozások és postaláda; 4b értesítés (ntfy, Home Assistant); 4c MCP. | central |
 | 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala; fióktörlés a felhasználó által (5.7); a Google utáni kötelező TOTP beállítása (5.5); meghívó e-mailben SMTP-vel. | central |
 
 - Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
@@ -328,3 +334,5 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 15.4 | A láncolat a központban dönt a futtató `next_step` / `later` hibái alapján (helyi Whisper: 90 percenként, `GPU_WAIT_H` = 72 óráig; más átmeneti hiba: óránként, 48 óráig); a helyi lépés modellje a futtató aktuális `whisper_models` listájának első eleme. |
 | 15.5 | Értesítés: ntfy és Home Assistant (a HA a régi rendszer `notify.<szolgáltatás>` hívásával, hosszú élettartamú tokennel, nem webhookkal: a tulajdonosnál így már működik, és nem kell hozzá HA-automatizmus). Web push később. |
 | 15.6 | A felhasználók által megadott értesítési címek nem érhetnek el belső hálózatot (SSRF ellen); kivétel az admin és a `NOTIFY_PRIVATE_NETS`. A tokenek titkosítva, a `TOKEN_KEY`-jel. |
+| 15.7 | MCP-tokenek felhasználónként, a felületen; jogkör tokenenként (indítás, saját felvételek). A szabályt két külön MCP-szerver példány adja (csak olvasó; olvasó és indító), a hívót kontextusváltozó viszi. |
+| 15.8 | Az MCP-s átírás alapmódja YouTube-felirat (a régi rendszerben helyi Whisper volt); a felhő csak kifejezett kérésre. |

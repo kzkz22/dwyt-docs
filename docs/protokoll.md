@@ -32,7 +32,8 @@ A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas
     "llm_roles": ["public", "private"],
     "allowed_domains": ["youtube.com", "youtu.be"],
     "local_sources": false,
-    "whisper_models": ["large-v3", "large-v3-turbo"]
+    "whisper_models": ["large-v3", "large-v3-turbo"],
+    "source_kinds": ["upload", "local"]
   },
   "runner_version": "0.1.0",
   "tool_versions": {"yt-dlp": "2026.8.19", "deno": "2.9.7"}
@@ -89,8 +90,12 @@ Ez nem a központ protokollja, hanem a futtató és a felhasználó saját GPU-w
 - Az egész munka EGY kérés: amíg nyitva van, a llama-swap a GPU-t a workernél tartja, és az LLM-kéréseket mögé sorolja. A válasz NDJSON: `{"stage": ...}` legalább 10 másodpercenként, a végén `{"result": {...}}` vagy `{"error": "..."}`. A kapcsolat bontása leállítja a munkát a workeren, és felszabadítja a GPU-t.
 - A futtató hibakezelése: elérhetetlen worker, a llama-swap `502`/`503`/`504`-e vagy félbeszakadt folyam → `retry: later` (megvárja a GPU-gépet); a worker elutasítása (`4xx`) vagy hibasora → `never`. Másik módra soha nem vált.
 
+## Saját felvételek (a 3. körtől)
+
+- **Böngészős feltöltés:** a központ a fájlt a futtató letöltéséig tárolja. A munka forrása `{"kind": "upload", "sha256", "name", "size", "media": "/runner/v1/jobs/{job_id}/media"}`; a futtató a `GET …/media` címről tölti le (a saját tokenjével, csak a nála futó munkáét; `Range`-kéréssel folytatható), és az átírás előtt ellenőrzi a SHA-256-ot. A fájlt a központ az eredmény leadása után törli (legkésőbb 7 nap múlva).
+- **Figyelt mappa:** a futtató az új fájlt bejelenti: `POST /runner/v1/local-items {"sha256", "name", "size", "options", "summarize"}` ([local-item-request](../schemas/local-item-request.schema.json)). Válasz: `{"item_id", "job_id", "existing"}`; `existing: true`, ha ennek a fájlnak már van átirata (nincs új munka). A munka forrása `{"kind": "local", "sha256", "name", "size"}`, és csak az a futtató kapja meg, amelyik bejelentette; a fájl nem hagyja el a gépet.
+- Mindkettőhöz a futtató a `source_kinds` képességben jelenti, mit tud (`upload`; figyelt mappával `local` is). A saját felvétel eredménye nem osztható meg, az összefoglaló és a fordítás `private` szereppel kérődik.
+
 ## Később
 
-- **Bemeneti fájl a központon át** (3. kör): böngészős feltöltésnél a munka egy rövid életű letöltési címet kap (`GET /runner/v1/jobs/{job_id}/media`, Range-kérésekkel).
-- **Helyi forrás** (3. kör): a futtató a figyelt mappából maga kezdeményez munkát: `POST /runner/v1/local-items {"sha256", "name", "size", "options"}`; a fájl el sem hagyja a gépet.
 - Kéréskorlát futtatónként; a GPU-gép ébredésének jelzése a felületen.

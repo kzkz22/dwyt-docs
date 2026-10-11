@@ -1,6 +1,6 @@
 # dwyt – funkcionális terv
 
-Állapot: 2026. október 10. Az 1. kör elkészült és élesben fut (`dwyt-central`, `dwyt-runner`); a 2. kör (saját GPU: `dwyt-airouter`, `dwyt-gpu`, helyi Whisper a futtatóban) is elkészült és élesben működik (Unraid-indítóval, 2026. október 11.). A 3. kör első fele (3a: fordítás, keresés, újrahasznosítás) elkészült, éles kipróbálásra vár. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 21. fejezet döntésnaplójában is).
+Állapot: 2026. október 10. Az 1. kör elkészült és élesben fut (`dwyt-central`, `dwyt-runner`); a 2. kör (saját GPU: `dwyt-airouter`, `dwyt-gpu`, helyi Whisper a futtatóban) is elkészült és élesben működik (Unraid-indítóval, 2026. október 11.). A 3. kör (fordítás, keresés, újrahasznosítás, saját felvételek, kvóták) elkészült; a 3a élesben fut, a 3b éles kipróbálásra vár. Ez a dokumentum rögzíti a megbeszélt döntéseket; minden későbbi lépés erre hivatkozik, és ha egy döntés változik, itt kell átírni (a fejezetben és a 21. fejezet döntésnaplójában is).
 
 ## 1. Cél
 
@@ -217,7 +217,8 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | --- | --- | --- |
 | 1. (kész) | GPU nélküli működő szelet: Google-belépés + meghívás + admin tartalékbelépés; könyvtár sorvédelemmel; futtató párosítása; munkasor a protokoll szerint. A futtató YouTube-feliratot és felhős átírást végez, összefoglalót bármely OpenAI-kompatibilis címmel készít. | central, runner, docs (JSON-sémák) |
 | 2. (kész, élesben fut) | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner, central |
-| 3. (3a kész: fordítás, keresés, újrahasznosítás; 3b következik; döntések: 13.1–13.6) | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
+| 3. (kész; döntések: 13.1–13.6) | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
+| 3c. (javaslat) | Elemszintű hiányok a régi webuihoz képest: átirat letöltése TXT/SRT-ben; összefoglaló-változatok (lista, aktuális kiválasztása, Markdown-letöltés); fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló választott modellel; szűrés és összefoglaló-előnézet a Könyvtár oldalon; tömeges pótlás (összefoglaló, fordítás, indexelés); a fordítás haladásának kijelzése. | central, runner |
 | 4. | Háttér és kliensek: feliratkozások és postaláda, értesítés (ntfy, Home Assistant), MCP. | central |
 | 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala; fióktörlés a felhasználó által (5.7); a Google utáni kötelező TOTP beállítása (5.5); meghívó e-mailben SMTP-vel. | central |
 
@@ -237,6 +238,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | A Whisper-worker képe registryben | Most a GPU-gépen épül (`docker compose build`); kész kép a GitHub Container Registryben (ghcr.io) egyszerűsítené az Unraid-sablont. |
 | llama-swap alias-lista | LiteLLM nélkül a `/v1/models` csak a `llama-server` bejegyzést mutatja, a presetneveket nem; a klienseknél kézzel kell megadni a nevet. |
 | A régi könyvtár behozatala | Formátum és időpont. |
+| A 3c rész | Javaslat (2026. október 11.): a régi webui elemszintű funkciói a 4. kör előtt; a tulajdonos jóváhagyására vár. |
 
 ## 21. Döntésnapló
 
@@ -301,3 +303,5 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 13.4 | Saját felvétel: böngészős feltöltés a központon át (2 GB, a futtató letöltése után törlődik, alapból helyi Whisper) és figyelt mappa a futtatónál (hash szerint egyszer, a fájl a helyén marad). Saját felvételhez csak `llm_private_model`. |
 | 13.5 | Kvóták a 17. fejezet alapértékeivel, admin felülírással; a felhasználó látja a fogyasztását. |
 | 13.6 | A 3. kör két részben: 3a fordítás, keresés, újrahasznosítás; 3b feltöltés, figyelt mappa, kvóták. |
+| 13.7 | Saját felvétel megvalósítása: a böngészős feltöltés a központ `STAGING_DIR`-jébe kerül (egy fájl tartalmanként), a futtató a `/runner/v1/jobs/{id}/media` címről tölti le és SHA-256-tal ellenőrzi; az eredmény leadása után (legkésőbb 7 nap múlva) törlődik. A figyelt mappa fájlját a futtató a `local-items` végponton jelenti be; a munkát csak ő kaphatja meg. A közös forrás feltöltésnél nem tárol fájlnevet (a név az elem címe). |
+| 13.8 | Kvóták: tárhely (a felhasználó elemeihez kötött szöveg és vektor, az átvett eredmények is), fájlméret, egyszerre várakozó feltöltések; az admin felhasználónként felülírhatja a két MB-os korlátot; a felhasználó a Beállítások oldalon látja. Kereten felül új munka nem indul. |

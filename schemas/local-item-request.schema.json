@@ -1,0 +1,39 @@
+{
+  "properties": {
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "size": {
+      "minimum": 1,
+      "title": "Size",
+      "type": "integer"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "summarize": {
+      "default": true,
+      "title": "Summarize",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "sha256",
+    "name",
+    "size"
+  ],
+  "title": "LocalItem",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kzkz22/dwyt-docs/blob/main/schemas/local-item-request.schema.json"
+}

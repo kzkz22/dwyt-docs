@@ -191,6 +191,12 @@ Felhasználónként választható csatorna:
 
 A szabályok a régi rendszerből jönnek, felhasználónként beállíthatóan: kézi beküldésről azonnal; feliratkozásokról napi összesítő vagy csatornánként azonnal; hibáról mindig.
 
+Megvalósítás (4b, 2026. október 11.):
+- A Beállítások oldalon felhasználónként: **ntfy** (szerver, alapból `https://ntfy.sh`; téma, a felület nehezen kitalálhatót javasol; saját szervernél token) vagy **Home Assistant** a régi rendszer szerint (cím, `notify.<szolgáltatás>`, hosszú élettartamú token). A tokenek titkosítva (`TOKEN_KEY`), csak a rendszer-szerepkör olvassa őket. Próbaértesítés gomb.
+- Mikor: kézi munka elkészülte (az összefoglaló után, vagy az átirat után, ha nem kért összefoglalót), elemenként egyszer, kikapcsolható; hiba mindig (kikapcsolható); feliratkozásos videó csatornánként: napi összesítő (alapból, a felhasználó által megadott időpontban), azonnal vagy semmi. Az összesítő a gyűjtött elemeket és a postaládában várakozó videók számát tartalmazza.
+- Kimenő sor (`notifications`), a háttérszál küldi; hibánál 1, 2, 4… percenként, legfeljebb 6 óránként, kb. két napig újrapróbál.
+- A felhasználó által megadott cím nem mutathat belső hálózatra (loopback, magán- és link-local címek), csak ha az üzemeltető engedi (`NOTIFY_PRIVATE_NETS`), vagy admin adja meg; interneten át csak https. A központ nem követ átirányítást.
+
 ## 17. Nyilvános üzemeltetés
 
 - **Kvóták** (alapértékek; az admin felhasználónként felülírhatja; nyitott regisztrációnál kötelezőek, meghívásosnál ugyanezek az alapértékek):
@@ -226,7 +232,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 2. (kész, élesben fut) | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner, central |
 | 3. (kész; döntések: 13.1–13.6) | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
 | 3c. (kész; döntések: 14.1–14.5) | Elemszintű hiányok a régi webuihoz képest: átirat letöltése TXT/SRT-ben; összefoglaló-változatok (lista, aktuális kiválasztása, Markdown-letöltés); fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló választott modellel; szűrés és összefoglaló-előnézet a Könyvtár oldalon; tömeges pótlás (összefoglaló, fordítás, indexelés); a fordítás haladásának kijelzése. | central, runner |
-| 4. (4a kész: 15.1–15.4) | Háttér és kliensek: 4a feliratkozások és postaláda; 4b értesítés (ntfy, Home Assistant); 4c MCP. | central |
+| 4. (4a, 4b kész: 15.1–15.6) | Háttér és kliensek: 4a feliratkozások és postaláda; 4b értesítés (ntfy, Home Assistant); 4c MCP. | central |
 | 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala; fióktörlés a felhasználó által (5.7); a Google utáni kötelező TOTP beállítása (5.5); meghívó e-mailben SMTP-vel. | central |
 
 - Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
@@ -320,3 +326,5 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 15.2 | A YouTube-lista a belépés Web OAuth-kliensével, külön, később adott hozzájárulással (`youtube.readonly`, offline); a refresh token titkosítva (`TOKEN_KEY`), csak a rendszer-szerepkör olvashatja; napi szinkron, leválasztáskor visszavonás. A régi rendszer készülékes (device) folyamata nem kell, mert a központ HTTPS-en, nyilvános címen fut. |
 | 15.3 | Közös csatorna- és videótábla: egy hírcsatorna-lekérés és egy Shorts-ellenőrzés mindenkinek; a felhasználók feliratkozása és postaládája sorvédett. |
 | 15.4 | A láncolat a központban dönt a futtató `next_step` / `later` hibái alapján (helyi Whisper: 90 percenként, `GPU_WAIT_H` = 72 óráig; más átmeneti hiba: óránként, 48 óráig); a helyi lépés modellje a futtató aktuális `whisper_models` listájának első eleme. |
+| 15.5 | Értesítés: ntfy és Home Assistant (a HA a régi rendszer `notify.<szolgáltatás>` hívásával, hosszú élettartamú tokennel, nem webhookkal: a tulajdonosnál így már működik, és nem kell hozzá HA-automatizmus). Web push később. |
+| 15.6 | A felhasználók által megadott értesítési címek nem érhetnek el belső hálózatot (SSRF ellen); kivétel az admin és a `NOTIFY_PRIVATE_NETS`. A tokenek titkosítva, a `TOKEN_KEY`-jel. |

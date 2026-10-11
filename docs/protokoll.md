@@ -83,7 +83,7 @@ A `progress` hosszú LLM-munkáknál (3c): `{"part": 3, "parts": 12, "model": "f
 
 - `later`: átmeneti (YouTube-tiltás, élő adás, elérhetetlen szolgáltató); a központ 1, 5, 15, 60, 180, 360 perc múlva újra kiadja, legfeljebb 6 próbálkozásig.
 - `never`: végleges (nincs kulcs, rossz modellnév, nem engedélyezett tartomány); a munka hibával áll le, a felületen „Újra” gombbal újraindítható.
-- `next_step`: ez a mód ennél a forrásnál nem működik (például nincs felirat a videó nyelvén); a feliratkozások láncolatában (4. kör) a következő mód jön, addig a központ `never`-ként kezeli.
+- `next_step`: ez a mód ennél a forrásnál nem működik (például nincs felirat a videó nyelvén). A feliratkozásos videók láncolatában a következő mód jön (terv, 14. fejezet); kézi beküldésnél végleges, mint a `never`.
 - A hibaüzenet magyarul, a felhasználónak szól; kulcsot vagy belső részletet nem tartalmazhat.
 
 ## Helyi Whisper (a futtató és a GPU-worker között)

@@ -17,7 +17,7 @@ def box(x,y,w,h,title,sub,c=W):
     text(x+w/2,y+35,sub,c,anchor="middle",size=12,sub=True)
 def line(d): out.append(f'<path d="{d}" fill="none" stroke="#5F5E5A" stroke-width="1.2" marker-end="url(#a)"/>')
 rect(40,20,600,120,G,rx=18); text(60,40,"Központ (publikus) — dwyt-central",G,bold=True)
-for i,(t,s) in enumerate([("Apache","TLS, proxy"),("Webes felület","könyvtár, MCP"),("PostgreSQL","átirat, vektor"),("bge-m3","keresés, CPU")]):
+for i,(t,s) in enumerate([("Apache","TLS, proxy"),("Webes felület","könyvtár, RSS, MCP"),("PostgreSQL","átirat, vektor"),("bge-m3","keresés, CPU")]):
     box(50+i*148,64,136,56,t,s,P)
 box(470,160,170,48,"Felhő, YouTube","saját kulccsal, saját IP")
 rect(40,230,600,380,W,rx=18); text(624,252,"Felhasználó infrastruktúrája",W,bold=True,anchor="end")

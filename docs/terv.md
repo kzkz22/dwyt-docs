@@ -169,6 +169,13 @@ A régi rendszer szerint (PostgreSQL teljes szöveges keresés `hungarian` + `un
 
 A régi rendszer szerint (csatornák Google-lel, Takeout-fájlból vagy kézzel; RSS-figyelés; „mindig / kérdezzen / soha” szabály; Shorts és élő adás kezelése), felhasználónként. Az RSS-figyelés központi: ugyanazt a csatornát több felhasználó követheti, a hírcsatornát elég egyszer lekérni.
 
+Megvalósítás (4a, 2026. október 11.):
+- **A lista a YouTube-fiókból:** a Csatornák oldalon „YouTube-fiók összekapcsolása”: ugyanaz a Web OAuth-kliens és visszairányítási cím, mint a belépésnél, PKCE-vel, `youtube.readonly` joggal és tartós (offline) hozzáféréssel. A refresh token titkosítva tárolódik (`TOKEN_KEY`, Fernet; az alkalmazás-szerepkör a táblát nem is olvashatja). A lista naponta frissül; akiről leiratkozott, az kikerül a figyelésből, a szabályai megmaradnak. Leválasztáskor a token törlődik és a Google-nél is visszavonódik. Mellette Takeout CSV és kézi felvétel (`@név`, URL, azonosító).
+- **Hírcsatornák:** a központ csatornánként egyszer kéri le (alapból óránként), és minden követőnek a postaládájába teszi az új videót, ha az a feliratkozása után jelent meg. A Shorts-ellenőrzés videónként egyszer fut. Ami már a felhasználó könyvtárában van, azt csak összekapcsolja.
+- **Láncolat:** YouTube-felirat → ha nincs a videó nyelvén (a futtató `next_step` hibája): helyi Whisper a futtató aktuális modelljével; ha a GPU-gép nem érhető el, 90 percenként újra, legfeljebb `GPU_WAIT_H` óráig (alapból 72) → felhős átírás, ha a csatornán engedélyezett, különben hiba. Más átmeneti hibánál (élő adás, YouTube-tiltás) óránként újra, legfeljebb 48 óráig, utána a következő lépés. Kézi beküldésnél a `next_step` végleges hiba marad.
+- **Összefoglaló** minden feliratkozásos videóhoz; fordítás a felhasználó beállítása szerint. Átvehető eredmény (más már elkészítette) azonnal átkerül.
+- **Postaláda:** Új / Folyamatban / Kész / Kihagyott / Shorts fül, „Összefoglaló kérése”, „Kihagyás”, „Mind kihagyása”; a megszakított vagy hibás videó a Kihagyott fülre kerül, onnan újra kérhető. Kiírja, hány videó vár a GPU-ra.
+
 ## 15. MCP
 
 Felhasználónként, a felületen létrehozott, névvel ellátott, visszavonható tokenekkel (az adatbázisban csak a hash-ük; létrehozáskor egyszer látszanak). Tokenenkénti jogkör: csak olvasás / indítás is; saját felvételekkel / nélkülük. A `/mcp` a nyilvános címen érhető el, mert a felhasználók kívülről használják; tokennel és kéréskorláttal.
@@ -219,7 +226,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 2. (kész, élesben fut) | Saját GPU: `models.yaml` és a belőle készülő beállítások, a három indító, ébresztés, Whisper-worker és llama-server konténer, modellletöltés; a futtató helyi Whisperrel. | airouter, gpu, runner, central |
 | 3. (kész; döntések: 13.1–13.6) | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
 | 3c. (kész; döntések: 14.1–14.5) | Elemszintű hiányok a régi webuihoz képest: átirat letöltése TXT/SRT-ben; összefoglaló-változatok (lista, aktuális kiválasztása, Markdown-letöltés); fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló választott modellel; szűrés és összefoglaló-előnézet a Könyvtár oldalon; tömeges pótlás (összefoglaló, fordítás, indexelés); a fordítás haladásának kijelzése. | central, runner |
-| 4. | Háttér és kliensek: feliratkozások és postaláda, értesítés (ntfy, Home Assistant), MCP. | central |
+| 4. (4a kész: 15.1–15.4) | Háttér és kliensek: 4a feliratkozások és postaláda; 4b értesítés (ntfy, Home Assistant); 4c MCP. | central |
 | 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala; fióktörlés a felhasználó által (5.7); a Google utáni kötelező TOTP beállítása (5.5); meghívó e-mailben SMTP-vel. | central |
 
 - Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
@@ -309,3 +316,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 14.3 | Fő átirat váltásakor az elem a választott átirat saját összefoglalóját és fordítását használja; ami hiányzik, sorba kerül (összefoglaló, ha az elemnek volt; fordítás a felhasználó beállítása szerint). Átirat törlésekor a hozzá tartozó összefoglaló- és fordításhivatkozások is törlődnek; fő átiratnál a legújabb másik veszi át a helyét. |
 | 14.4 | Hivatkozás nélküli közös eredmény (átirat, összefoglaló, fordítás) egy óra után törlődik az óránkénti takarításban; amelyikre más felhasználó vagy várakozó munka még hivatkozik, megmarad. |
 | 14.5 | Újraírás: nyilvános forrásnál előbb átvehető eredményt keres; figyelt mappás felvételt az a futtató kap, amelyiknél a fájl van; böngészőből feltöltött felvételt újra fel kell tölteni (a központ nem tartja meg). Haladás: a futtató a szívveréssel küldi (`part`/`parts`/`model`), az elemoldal 5 másodpercenként frissíti, és a munka végén újratölt. |
+| 15.1 | A 4. kör három részben: 4a feliratkozások és postaláda, 4b értesítés, 4c MCP. |
+| 15.2 | A YouTube-lista a belépés Web OAuth-kliensével, külön, később adott hozzájárulással (`youtube.readonly`, offline); a refresh token titkosítva (`TOKEN_KEY`), csak a rendszer-szerepkör olvashatja; napi szinkron, leválasztáskor visszavonás. A régi rendszer készülékes (device) folyamata nem kell, mert a központ HTTPS-en, nyilvános címen fut. |
+| 15.3 | Közös csatorna- és videótábla: egy hírcsatorna-lekérés és egy Shorts-ellenőrzés mindenkinek; a felhasználók feliratkozása és postaládája sorvédett. |
+| 15.4 | A láncolat a központban dönt a futtató `next_step` / `later` hibái alapján (helyi Whisper: 90 percenként, `GPU_WAIT_H` = 72 óráig; más átmeneti hiba: óránként, 48 óráig); a helyi lépés modellje a futtató aktuális `whisper_models` listájának első eleme. |

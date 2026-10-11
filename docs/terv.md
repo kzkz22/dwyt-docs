@@ -76,7 +76,7 @@ Adatfolyamok:
   - *az adatbázis (sorvédelem, PostgreSQL row-level security):* a táblákon szabály áll (`USING`/`WITH CHECK user_id = current_setting('dwyt.user_id')`), és a központ minden kérés tranzakciójának elején `SET LOCAL dwyt.user_id`-t állít. Így egy kimaradt szűrő sem ad ki idegen sort, beállítás nélkül pedig a lekérdezés hibát ad. Az alkalmazás nem tulajdonos, a szabályt meg nem kerülő szerepkörrel kapcsolódik; a migrációk a tulajdonos szerepkörrel futnak. A szándékosan felhasználók közötti munkák (újrahasznosítás keresése, RSS-figyelés, admin statisztika) külön, szűk kódrészben, külön szerepkörrel futnak. Egy teszt szándékosan szűrő nélkül kérdez, és ellenőrzi, hogy idegen sor nem jön vissza.
 - **Saját felvétel** (feltöltés, figyelt mappa) és **nyilvános forrás** (YouTube, URL) megkülönböztetése megmarad: saját felvétel csak a felhasználó helyi LLM-jéhez mehet automatikusan, felhős LLM-hez csak a felhasználó kifejezett beállításával.
 - Hang és videó a központban nem tárolódik (a központon átmenő feltöltés csak addig, amíg a futtató át nem vette; 8. fejezet).
-- A régi tervből még nem megvalósított, de ide tartozó funkciók: címkék, jegyzet, beszélők elnevezése, a teljes könyvtár exportja (Markdown, JSON).
+- Személyes kiegészítések (5. kör): címkék (a Könyvtárban szűrhető), jegyzet (a Könyvtár szűrője keres benne), a beszélők elnevezése átiratonként (csak a felhasználónál látszik: az átiraton, az összefoglalóban, a letöltésekben, az exportban és az MCP-n át; a közös eredmény nem változik), a teljes könyvtár exportja ZIP-ben (Markdown elemenként vagy egy JSON).
 
 ## 7. Újrahasznosítás
 
@@ -225,7 +225,7 @@ Megvalósítás (4b, 2026. október 11.):
 2. A dwyt központ új LXC-be (publikus, Apache mögött).
 3. Futtató és AI-router az `ai-router` LXC-ben (a régi LiteLLM és llama-swap helyett vagy mellett, külön porton), GPU-gép az Unraidon az Unraid-indítóval.
    Átmenetileg két llama-swap osztozik a GPU-n: a dwyt-é a régi konténereket (`llama.cpp`, `yt-transcribe-gpu`) az `other_gpu_containers` között leállítja indítás előtt, a régi `unraid-container.sh` `GPU_CONTAINERS` listájába pedig a dwyt konténerei kerülnek. Egyszerűbb, ha a régi rendszer is a dwyt llama-swapját használja: a régi worker `extra_containers` bejegyzésként kerül bele, és a régi API `WORKER_URL`-je erre mutat.
-4. A régi könyvtár egyszeri behozatala a tulajdonos fiókjába (később, nem sürgős).
+4. A régi könyvtár behozatala elmarad: a tulajdonos a néhány régi videót kézzel küldi be újra (16.1).
 5. Ha a dwyt jól működik, eldől, kell-e még a régi.
 
 ## 19. Körök és sorrend
@@ -239,7 +239,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 3. (kész; döntések: 13.1–13.6) | Könyvtár teljesen: fordítás, keresés (`bge-m3`), újrahasznosítás, kvóták, figyelt mappa. | central, runner |
 | 3c. (kész; döntések: 14.1–14.5) | Elemszintű hiányok a régi webuihoz képest: átirat letöltése TXT/SRT-ben; összefoglaló-változatok (lista, aktuális kiválasztása, Markdown-letöltés); fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló választott modellel; szűrés és összefoglaló-előnézet a Könyvtár oldalon; tömeges pótlás (összefoglaló, fordítás, indexelés); a fordítás haladásának kijelzése. | central, runner |
 | 4. (kész: 15.1–15.8) | Háttér és kliensek: 4a feliratkozások és postaláda; 4b értesítés (ntfy, Home Assistant); 4c MCP. | central |
-| 5. | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export, a régi könyvtár behozatala; fióktörlés a felhasználó által (5.7); a Google utáni kötelező TOTP beállítása (5.5); meghívó e-mailben SMTP-vel. | central |
+| 5. (kész, a passkey kivételével: 16.1–16.5) | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export; fióktörlés a felhasználó által (5.7); a Google utáni TOTP (5.5); meghívó e-mailben SMTP-vel. A régi könyvtár behozatala elmarad (16.1). | central |
 
 - Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
 - **Cím:** `dwyt.iodate.date` (a tulajdonos `iodate.date` domainjének aldomainje), az Apache-on külön virtual hosttal és Let's Encrypt-tanúsítvánnyal. Fejlesztés alatt a Google-belépés `http://localhost` visszairányítással is kipróbálható.
@@ -256,7 +256,6 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | Ollama a GPU-gépen | Modellürítés az Ollama API-jával. |
 | A Whisper-worker képe registryben | Most a GPU-gépen épül (`docker compose build`); kész kép a GitHub Container Registryben (ghcr.io) egyszerűsítené az Unraid-sablont. |
 | llama-swap alias-lista | LiteLLM nélkül a `/v1/models` csak a `llama-server` bejegyzést mutatja, a presetneveket nem; a klienseknél kézzel kell megadni a nevet. |
-| A régi könyvtár behozatala | Formátum és időpont. |
 
 ## 21. Döntésnapló
 
@@ -336,3 +335,8 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 15.6 | A felhasználók által megadott értesítési címek nem érhetnek el belső hálózatot (SSRF ellen); kivétel az admin és a `NOTIFY_PRIVATE_NETS`. A tokenek titkosítva, a `TOKEN_KEY`-jel. |
 | 15.7 | MCP-tokenek felhasználónként, a felületen; jogkör tokenenként (indítás, saját felvételek). A szabályt két külön MCP-szerver példány adja (csak olvasó; olvasó és indító), a hívót kontextusváltozó viszi. |
 | 15.8 | Az MCP-s átírás alapmódja YouTube-felirat (a régi rendszerben helyi Whisper volt); a felhő csak kifejezett kérésre. |
+| 16.1 | A régi könyvtár behozatala elmarad (kevés elem; a tulajdonos kézzel küldi be újra). |
+| 16.2 | Címkék, jegyzet és beszélőnevek a felhasználó soraiban (sorvédelem); a beszélőneveket megjelenítéskor alkalmazzuk, a közös eredmény változatlan. Export ZIP-ben, Markdown vagy JSON. |
+| 16.3 | A Google utáni saját TOTP-t a felhasználó maga kapcsolhatja be; `REQUIRE_TOTP=true` mellett mindenkinek kötelező, a beállítást az első belépés kéri. A kód a Google után, félkész munkamenettel jön, a sikertelen próbálkozások zárolnak. Az admin tartalék-TOTP-je ugyanaz a bejegyzés lehet. |
+| 16.4 | Fióktörlés a Beállítások oldalon, az e-mail-cím beírásával; az utolsó admin nem törölheti magát. A YouTube-hozzáférés visszavonódik. |
+| 16.5 | Meghívó e-mailben, ha a telepítő SMTP-szervert ad meg; a link akkor is látszik az adminnak. |

@@ -22,7 +22,7 @@ A **dwyt** videók és hangfelvételek átiratát, fordítását és összefogla
 
 **Újrahasznosítás:** ha két felhasználó ugyanazt a nyilvános videót kéri ugyanazokkal a beállításokkal, az eredmény (átirat, összefoglaló) a második felhasználónál is felhasználható, név nélkül. Saját felvétel eredménye csak a feltöltő engedélyével.
 
-**Törlés:** az elemek egyenként törölhetők; a fiók és a könyvtár törlését az üzemeltetőtől lehet kérni (a fióktörlés a felületen később érkezik). A Google-hozzáférés a Google-fiókban is visszavonható: [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
+**Törlés és export:** az elemek egyenként törölhetők; a fiókodat a könyvtárral együtt a Beállítások oldalon magad törölheted, előtte pedig a teljes könyvtárat exportálhatod (Markdown vagy JSON). A Google-hozzáférés a Google-fiókban is visszavonható: [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
 
 Az alkalmazás a Google-ből kapott adatok használatakor betartja a [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy) szabályait, a „Limited Use” követelményekkel együtt.
 
@@ -48,7 +48,7 @@ Kapcsolat: [GitHub-issue](https://github.com/kzkz22/dwyt-docs/issues) ebben a re
 
 **Reuse:** when two users request the same public video with the same settings, the result may be reused for the second user, without naming the first. Results of own recordings only with the uploader's permission.
 
-**Deletion:** items can be deleted one by one; account deletion on request (self-service later). Google access can be revoked at [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
+**Deletion and export:** items can be deleted one by one; you can delete your account with its library on the Settings page, and export the whole library before (Markdown or JSON). Google access can be revoked at [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
 
 The app's use of information received from Google APIs adheres to the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.
 

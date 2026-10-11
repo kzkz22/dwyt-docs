@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kzkz22/dwyt-docs/blob/main/schemas/translate-input.schema.json",
+  "title": "TranslateInput",
+  "description": "The `input` of a claimed job of kind `translate`: the transcript's segments by index; the answer keeps the indexes.",
+  "type": "object",
+  "required": ["role", "segments"],
+  "properties": {
+    "role": {"enum": ["public", "private"], "description": "public: a public source; private: an own recording (only the runner's private model)"},
+    "source_language": {"type": ["string", "null"]},
+    "target": {"type": "string", "description": "always hu for now"},
+    "meta": {"type": "object", "properties": {"title": {"type": ["string", "null"]}, "channel": {"type": ["string", "null"]}, "url": {"type": ["string", "null"]}}},
+    "segments": {"type": "array", "items": {"type": "object", "required": ["idx", "text"], "properties": {"idx": {"type": "integer"}, "text": {"type": "string"}}}}
+  }
+}

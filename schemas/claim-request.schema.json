@@ -3,39 +3,29 @@
     "Capabilities": {
       "properties": {
         "kinds": {
-          "default": [],
           "items": {
-            "enum": [
-              "transcribe",
-              "summarize"
-            ],
+            "maxLength": 253,
             "type": "string"
           },
+          "maxItems": 20,
           "title": "Kinds",
           "type": "array"
         },
         "transcribe_modes": {
-          "default": [],
           "items": {
-            "enum": [
-              "captions",
-              "cloud",
-              "local"
-            ],
+            "maxLength": 253,
             "type": "string"
           },
+          "maxItems": 20,
           "title": "Transcribe Modes",
           "type": "array"
         },
         "llm_roles": {
-          "default": [],
           "items": {
-            "enum": [
-              "public",
-              "private"
-            ],
+            "maxLength": 253,
             "type": "string"
           },
+          "maxItems": 20,
           "title": "Llm Roles",
           "type": "array"
         },

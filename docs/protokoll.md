@@ -27,7 +27,7 @@ A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas
 ```json
 {
   "capabilities": {
-    "kinds": ["transcribe", "summarize"],
+    "kinds": ["transcribe", "summarize", "translate"],
     "transcribe_modes": ["captions", "cloud", "local"],
     "llm_roles": ["public", "private"],
     "allowed_domains": ["youtube.com", "youtu.be"],
@@ -39,6 +39,8 @@ A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas
 }
 ```
 
+Ismeretlen fajtát vagy módot a központ nem utasít el (egy újabb futtató többet tudhat), csak nem ad rá munkát.
+
 Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 
 ```json
@@ -49,7 +51,8 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 - A futtató a kapott munkát maga is ellenőrzi (fajta, forrás, mód, tartomány), és ami nem fér bele, azt hibával visszaadja. A központ esetleges feltörése így sem tud a futtatóval mást csináltatni, mint ezeket a szűk munkákat.
 - A bejelentett képességeket és verziókat a felület a Futtatók oldalon mutatja. Ha egy várakozó munkát egyik futtató sem tud elvégezni, a Munkák oldal ezt jelzi.
 - Új, ismeretlen képességmezőt a központ figyelmen kívül hagy; így a futtató a protokoll verziójának emelése nélkül bővíthet.
-- A munka bemenete: [transcribe-input](../schemas/transcribe-input.schema.json), [summarize-input](../schemas/summarize-input.schema.json). Az összefoglaló utasítását a futtató írja; a verziószámát (`prompt_version`) az eredménnyel együtt visszaküldi.
+- A munka bemenete: [transcribe-input](../schemas/transcribe-input.schema.json), [summarize-input](../schemas/summarize-input.schema.json), [translate-input](../schemas/translate-input.schema.json).
+- **Fordítás** (`translate`, a 3. körtől): az átirat szegmensei sorszámmal; a futtató a sorszámokat megtartva adja vissza a magyar sorokat ([translate-result](../schemas/translate-result.schema.json)), a ki nem fordított sorokat kihagyja, és a számukat a `missing` mezőben jelzi. A modellt a szerep szerint maga választja (`private` → `llm_private_model`; `public` → `llm_translate_model`, ha van, különben `llm_public_model`). Az összefoglaló utasítását a futtató írja; a verziószámát (`prompt_version`) az eredménnyel együtt visszaküldi.
 
 ## Szívverés és megszakítás
 
@@ -62,12 +65,12 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 
 ## Eredmény leadása
 
-`PUT /runner/v1/jobs/{job_id}/result`, a munka fajtájától függően: [transcribe-result](../schemas/transcribe-result.schema.json) vagy [summarize-result](../schemas/summarize-result.schema.json).
+`PUT /runner/v1/jobs/{job_id}/result`, a munka fajtájától függően: [transcribe-result](../schemas/transcribe-result.schema.json), [summarize-result](../schemas/summarize-result.schema.json) vagy [translate-result](../schemas/translate-result.schema.json).
 
 - Ismételhető: ha a futtató nem kapott választ, újra leadhatja; a központ a már tárolt eredményt nem tárolja kétszer, és ugyanazt a választ adja.
 - Érvénytelen alakra `422` (például üres szegmenslista); a futtató ezt hibaként naplózza.
 - A futtató a leadást átmeneti hibánál (hálózat, `5xx`) egyre ritkábban, kb. 20 percig próbálja.
-- Átírás után, ha a beküldő kérte, a központ magától sorba teszi az összefoglalót.
+- Átírás után, ha a beküldő kérte, a központ magától sorba teszi az összefoglalót; ha az átirat nem magyar, és a felhasználó nem kapcsolta ki, a fordítást is.
 
 ## Hiba
 

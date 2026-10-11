@@ -340,3 +340,6 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 16.3 | A Google utáni saját TOTP-t a felhasználó maga kapcsolhatja be; `REQUIRE_TOTP=true` mellett mindenkinek kötelező, a beállítást az első belépés kéri. A kód a Google után, félkész munkamenettel jön, a sikertelen próbálkozások zárolnak. Az admin tartalék-TOTP-je ugyanaz a bejegyzés lehet. |
 | 16.4 | Fióktörlés a Beállítások oldalon, az e-mail-cím beírásával; az utolsó admin nem törölheti magát. A YouTube-hozzáférés visszavonódik. |
 | 16.5 | Meghívó e-mailben, ha a telepítő SMTP-szervert ad meg; a link akkor is látszik az adminnak. |
+| 16.6 | A YouTube-lista lekérése betűrendben (`order=alphabetical`; az alapértelmezett sorrend lapozáskor elemeket hagyhat ki), ismétlődés nélkül; a felület kiírja, ha a YouTube által jelzett szám eltér a lejött listától. |
+| 16.7 | Fordítás minden átirathoz kérhető (nem csak a fő átirathoz); minden átirat megtartja a saját fordítását, az aktuális fordítás a fő átiraté. |
+| 16.8 | Beszélő-beállítás a régi rendszer szerint: automatikus, pontosan N, legalább / legfeljebb, beszélők nélkül (helyi Whisper és AssemblyAI is). Az elem oldalán a régi webui metaadatai: kép, forrás, csatorna, hossz, megjelenés, nyelv, teljes link; átiratonként sorok, beszélők, és egy ⓘ részletező (idő, költség, tokenek, modell). |

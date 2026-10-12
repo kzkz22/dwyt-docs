@@ -88,6 +88,36 @@
           },
           "title": "Llm Models",
           "type": "object"
+        },
+        "llm_model_info": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxProperties": 40,
+          "propertyNames": {
+            "maxLength": 100
+          },
+          "title": "Llm Model Info",
+          "type": "object"
+        },
+        "llm_server": {
+          "default": "",
+          "maxLength": 60,
+          "title": "Llm Server",
+          "type": "string"
+        },
+        "llm_defaults": {
+          "additionalProperties": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "maxProperties": 10,
+          "propertyNames": {
+            "maxLength": 20
+          },
+          "title": "Llm Defaults",
+          "type": "object"
         }
       },
       "title": "Capabilities",

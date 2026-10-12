@@ -34,7 +34,15 @@ A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas
     "local_sources": false,
     "whisper_models": ["large-v3", "large-v3-turbo"],
     "source_kinds": ["upload", "local"],
-    "llm_models": {"public": ["osszefoglalo", "cloud/okos"], "private": ["osszefoglalo-helyi"]}
+    "llm_models": {"public": ["osszefoglalo", "cloud/okos"], "private": ["osszefoglalo-helyi"]},
+    "llm_model_info": {"osszefoglalo": {"description": "Összefoglaló és fordítás.", "where": "local",
+                                         "target_label": "Qwen3.6-35B-A3B, általános beállítás", "context": 262144,
+                                         "vision": true, "thinking": false,
+                                         "fallback": [{"name": "cloud/qwen3.8-flash-gyors", "target_label": "Qwen3.8 Flash",
+                                                       "where": "cloud", "provider": "OpenRouter", "thinking": false}]}},
+    "llm_server": "LiteLLM",
+    "llm_defaults": {"summarize": "osszefoglalo", "translate": "osszefoglalo", "ask": "kerdes",
+                     "private": "osszefoglalo-helyi"}
   },
   "runner_version": "0.1.0",
   "tool_versions": {"yt-dlp": "2026.8.19", "deno": "2.9.7"}
@@ -56,6 +64,8 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 - A munka bemenete: [transcribe-input](../schemas/transcribe-input.schema.json), [summarize-input](../schemas/summarize-input.schema.json), [translate-input](../schemas/translate-input.schema.json), [ask-input](../schemas/ask-input.schema.json).
 - **Fordítás** (`translate`, a 3. körtől): az átirat szegmensei sorszámmal; a futtató a sorszámokat megtartva adja vissza a magyar sorokat ([translate-result](../schemas/translate-result.schema.json)), a ki nem fordított sorokat kihagyja, és a számukat a `missing` mezőben jelzi. A modellt a szerep szerint maga választja (`private` → `llm_private_model`; `public` → `llm_translate_model`, ha van, különben `llm_public_model`).
 - **Választott modell** (3c): az `llm_models` képesség szerepenként sorolja fel, mely modelleket ajánlja fel a futtató a felhasználónak (az alapmodellek és az `llm_models`, illetve saját felvételhez az `llm_private_models` beállítás). Az elemoldalon választott modell a munka bemenetében `model` mezőként érkezik; a futtató csak a saját listájából fogad el modellt, mást végleges hibával (`never`) visszaad. `model` nélkül a szerep szerinti alapmodell dolgozik. Az összefoglaló utasítását a futtató írja; a verziószámát (`prompt_version`) az eredménnyel együtt visszaküldi.
+
+- **Modell-leírás** (17.4): az `llm_model_info` nevenként mondja meg, mi fut a név mögött: `description` (mire való), `where` (`local` / `cloud`), `target` és `target_label` (a modell), `provider`, `context` (token), `vision`, `thinking` (`true` / `false`; hiányzik = a modell alapértelmezése), `thinking_budget`, és `fallback` (legfeljebb 3 tartalék ugyanilyen mezőkkel és a `name`-mel: mi válaszol, ha a GPU-gép ki van kapcsolva). Az `llm_server` az LLM-szerver fajtája (`LiteLLM`, `OpenRouter`, `OpenAI-kompatibilis szerver`), az `llm_defaults` feladatonként (`summarize`, `translate`, `ask`, `private`) az alapmodell neve. A dwyt-airouter LiteLLM-je a `/model/info` válaszában `model_info.dwyt` alatt adja ezeket; a futtató csak a felsorolt mezőket küldi tovább (kulcsot, címet soha), és óránként frissíti. A központ is csak ezeket a mezőket tárolja (legfeljebb 40 név, 40 000 karakter); ha a mezők hiányoznak, régebbi futtatónak tekinti. Mindhárom csak tájékoztatás: azt, hogy mi kérhető, továbbra is az `llm_models` dönti el.
 
 - **Kérdés** (`ask`, a 6. körtől): egy beszélgetés következő válasza ([ask-input](../schemas/ask-input.schema.json) → [ask-result](../schemas/ask-result.schema.json)). A bemenetben a `scope` (`item`: egy elem; `library`: a könyvtár), a `role` (`public`, saját felvétel oldalán `private`), a háttér forrásai sorszámmal (`sources`: cím, csatorna, nyelv, az összefoglaló, az átirat sorai időponttal és a magyar fordítással; `partial: true`, ha csak részletek), és az eddigi üzenetek (`messages`, az utolsó a megválaszolandó kérdés). A futtató írja az utasítást (a hivatkozás alakja: elemnél `[12:34]`, könyvtárnál `[#2 12:34]`), a modell a szerep szerinti: `public` → `llm_ask_model`, ha van, különben `llm_public_model`; `private` → `llm_private_model`; a választott `model` itt is csak a futtató listájából. A futtató a `kinds`-ban `ask`-kal jelzi, hogy tud ilyet; a régebbi futtató nem kap kérdést.
 

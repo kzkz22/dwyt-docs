@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kzkz22/dwyt-docs/blob/main/schemas/ask-input.schema.json",
+  "title": "AskInput",
+  "description": "The `input` of a claimed job of kind `ask` (round 6): the next answer of a conversation about one item or the library. The central service gathers the background; the runner writes the instructions (its PROMPT_VERSION goes back in the result) and gives the model no tools.",
+  "type": "object",
+  "required": ["scope", "role", "sources", "messages"],
+  "properties": {
+    "model": {"type": "string", "description": "chosen in the conversation: one of the runner's llm_models for this role; absent = public: llm_ask_model or llm_public_model, private: llm_private_model"},
+    "scope": {"enum": ["item", "library"], "description": "item: citations as [12:34]; library: as [#n 12:34] or [#n]"},
+    "role": {"enum": ["public", "private"], "description": "private only for a question on an own recording's page; library questions leave own recordings out"},
+    "language": {"type": "string", "description": "language of the answer, e.g. hu"},
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "required": ["n", "transcript"],
+        "properties": {
+          "n": {"type": "integer", "description": "the number the answer cites (library)"},
+          "title": {"type": ["string", "null"]},
+          "channel": {"type": ["string", "null"]},
+          "url": {"type": ["string", "null"]},
+          "language": {"type": ["string", "null"], "description": "language of the transcript"},
+          "partial": {"type": "boolean", "description": "true: only passages chosen for the question, not the whole transcript"},
+          "summary": {"type": ["string", "null"], "description": "the item's current summary (Markdown)"},
+          "transcript": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["start", "text"],
+              "properties": {
+                "start": {"type": "number", "description": "seconds"},
+                "speaker": {"type": ["string", "null"], "description": "with the user's own speaker names applied"},
+                "text": {"type": "string"},
+                "hu": {"type": ["string", "null"], "description": "Hungarian translation of the line, if there is one"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "description": "the conversation so far (unanswered questions left out); the last one is the question to answer",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {"enum": ["user", "assistant"]},
+          "content": {"type": "string"}
+        }
+      }
+    }
+  }
+}

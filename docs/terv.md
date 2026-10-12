@@ -186,6 +186,18 @@ Megvalósítás (4c, 2026. október 11.):
 - Az `atiras_inditasa` alapból YouTube-feliratot kér (nem minden felhasználónak van GPU-ja); helyi Whisper kérésre, felhő csak kifejezett kérésre. Ugyanaz a beküldési és újraírási kód fut, mint a felületen (átvétel, kvóta, futó munka ellenőrzése).
 - Kéréskorlát tokenenként (300 / 5 perc), hibás tokenre címenként (20 / 5 perc); a hibás token `401`-ét a fail2ban is figyeli.
 
+## 15a. Kérdezés a könyvtárról (6. kör)
+
+A felületen belül, Hermes vagy más MCP-kliens nélkül: az elem oldalán „Kérdezz a videóról”, a Keresés oldalon „Kérdezz a könyvtáradról”. A beszélgetés folytatható, elmentődik, és Markdownként letölthető.
+
+- **Nincs MCP-kliens a központban, és a modellnek nincsenek eszközei.** A hátteret a központ szedi össze: az elemnél az átirat (a fordítással és az összefoglalóval), a könyvtárnál a meglévő hibrid keresés legjobb részletei. Egy átirat videóból jön, tehát megbízhatatlan szöveg: ha a modell eszközt hívhatna, egy beinjektált mondat műveletet válthatna ki. Így a legrosszabb eset egy félrevezető válasz.
+- **A választ a futtató írja**, új munkafajtával (`ask`, protokoll), a felhasználó saját modelljével és költségén. Alapból az `llm_ask_model`, ennek hiányában az `llm_public_model`; az AI-routeren erre a gondolkodó `kerdes` név való (a Qwen3.6-35B-A3B általános változata gondolkodással).
+- **Adatvédelem:** a könyvtárról szóló kérdésnél a saját felvételek kimaradnak a háttérből. A saját felvétel saját oldalán lehet kérdezni, de csak a futtató helyi (`private`) modelljével, ahogy az összefoglalónál.
+- **Hivatkozások:** az elemnél `[12:34]`, a könyvtárnál `[#2 12:34]` (a 2. forrás, időpont); a felület linkké alakítja őket (YouTube-időpont, illetve az elem oldala). A válasz a meglévő, escape-elt Markdown-részhalmazzal jelenik meg (címsor, felsorolás, számozott lista, félkövér, dőlt, kód); HTML-t a modell nem tud beszúrni, külső linket és képet sem.
+- **Korlátok:** kérdés legfeljebb 4000 karakter; felhasználónként 60 kérdés óránként; beszélgetésenként egyszerre egy függő kérdés; az előzményből az utolsó 20 üzenet; az elem átirata legfeljebb 250 000 karakterig megy egészben, efölött az elemen belüli keresés legjobb részletei; a könyvtárnál legfeljebb 8 elem, összesen kb. 60 000 karakter.
+- **Tárolás:** a beszélgetések a felhasználó soraiban (sorvédelem), a fiók törlésével törlődnek, az exportban benne vannak. A kérdés-munkák nem jelennek meg a Munkák oldalon, és hibájukról nem megy értesítés: a hiba a beszélgetésben látszik, „Újra” gombbal.
+- **Később:** folyamatosan íródó válasz (streaming) a szívverésekkel.
+
 ## 16. Értesítés
 
 Felhasználónként választható csatorna:
@@ -240,6 +252,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 3c. (kész; döntések: 14.1–14.5) | Elemszintű hiányok a régi webuihoz képest: átirat letöltése TXT/SRT-ben; összefoglaló-változatok (lista, aktuális kiválasztása, Markdown-letöltés); fő átirat választása, átirat törlése; újraírás más beállításokkal; összefoglaló választott modellel; szűrés és összefoglaló-előnézet a Könyvtár oldalon; tömeges pótlás (összefoglaló, fordítás, indexelés); a fordítás haladásának kijelzése. | central, runner |
 | 4. (kész: 15.1–15.8) | Háttér és kliensek: 4a feliratkozások és postaláda; 4b értesítés (ntfy, Home Assistant); 4c MCP. | central |
 | 5. (kész, a passkey kivételével: 16.1–16.5) | Kiegészítések: passkey, címkék, jegyzet, beszélőnevek, export; fióktörlés a felhasználó által (5.7); a Google utáni TOTP (5.5); meghívó e-mailben SMTP-vel. A régi könyvtár behozatala elmarad (16.1). | central |
+| 6. (döntések: 17.1–17.3) | Kérdezés a könyvtárról a felületen belül (15a): beszélgetés az elem oldalán és a Keresés oldalon, `ask` munkafajta a futtatón, Markdown-letöltés. | central, runner, airouter, docs |
 | Felület (kész: 16.9) | A tulajdonos StockMaster alkalmazásának kinézete és felépítése: bal oldali, becsukható menü, mobilon becsúszó menü, világos és sötét téma, akadálymentesség. | central |
 
 - Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
@@ -347,3 +360,6 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 16.9 | A felület a tulajdonos StockMaster alkalmazásának kinézetét és felépítését követi: acélkék színek (shadcn/ui-tokenek HSL-ben), világos és sötét téma (alapból a rendszeré, kézzel váltható, a böngésző megjegyzi), bal oldali csoportosított menü ikonokkal, asztalin becsukható (csak ikonok, a böngésző megjegyzi), mobilon fejlécgombbal nyíló, becsúszó menü (Esc, fókusz a menüben marad). Akadálymentesség: ugrólink a tartalomhoz, látható fókuszkeret, legalább 32–40 px-es gombok, `aria-current` a menüben, csökkentett animáció kérésre. A StockMaster Fontshare-betűi helyett a beépített Inter (OFL), mert a szigorú CSP külső betöltést nem enged; az ikonok (Lucide) a lapba ágyazva. A Könyvtár kártyás lista marad (a bélyegkép a fő támpont), nem táblázat. Az elem oldalán adatrács, gyorsgombok és ugrósáv; a Csatornák soronként egy tömör sor. |
 | 16.10 | A YouTube hírcsatornája (`/feeds/videos.xml`) 2025 vége óta naponta órákra minden csatornára 404-et vagy 500-at ad. Ezért egy sikertelen lekérés nem jelenti, hogy a csatorna megszűnt: egy újrapróbálás, utána a kör leáll és 5 percet vár; a csatornát 15 perc múlva újra megnézi; a felület a kiesést összesítve, sárgán jelzi, és csak egy napnál hosszabb hiba után írja, hogy a csatornát talán törölték. Tartaléknak a YouTube Data API (kvóta, közös projekt) egyelőre nem kell. |
 | 16.11 | A GPU-gépen minden GGUF-fájl a `gguf/<szervezet>/<repó>/` mappába kerül (`downloads.json` 2-es változat), mert a repókban gyakran azonos nevű fájlok vannak (`mmproj-F16.gguf`), és a lapos mappában a második felülírta volna az elsőt. A tulajdonos `models.yaml`-ja a régi `models.ini` négy presetjét veszi át (Qwen3.8-27B és Qwen3.6-35B-A3B, kódoló és általános változat, MTP-vel, képfeldolgozással); a Qwen3.6-hoz az MTP-s repó kell. |
+| 17.1 | Kérdezés a felületen belül (15a): a központ szedi össze a hátteret (az elem átirata, illetve a keresés legjobb részletei), a modellnek nincsenek eszközei (az átirat megbízhatatlan szöveg, prompt injection ellen); a választ a futtató írja `ask` munkával. MCP-kliens a központban nincs. |
+| 17.2 | Folytatható, mentett beszélgetések, Markdownként letölthetők; a válasz renderelve jelenik meg. Az első változatban nincs folyamatos írás (streaming), később a szívverésekkel. |
+| 17.3 | A könyvtárról szóló kérdésnél a saját felvételek kimaradnak; saját felvétel oldalán csak a helyi (`private`) modell válaszolhat. A kérdések modellje alapból az összefoglalóé gondolkodással (AI-router: `kerdes` → Qwen3.6-35B-A3B-Gnrl), a futtatón `llm_ask_model`. |

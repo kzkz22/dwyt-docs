@@ -1,6 +1,6 @@
 # A központ és a futtató közötti protokoll
 
-Állapot: 1-es verzió, 2026. október 10.; a `dwyt-central` és a `dwyt-runner` 1. köre ezt valósítja meg. A fő döntések a [terv](terv.md) 12. fejezetében és a döntésnapló 7.x soraiban vannak. Ha a protokoll változik, a verziószáma nő, és a központ egy ideig az előzőt is elfogadja.
+Állapot: 1-es verzió, 2026. október 10. (a 6. kör `ask` munkafajtája bővítés, a verziót nem emeli); a `dwyt-central` és a `dwyt-runner` 1. köre ezt valósítja meg. A fő döntések a [terv](terv.md) 12. fejezetében és a döntésnapló 7.x soraiban vannak. Ha a protokoll változik, a verziószáma nő, és a központ egy ideig az előzőt is elfogadja.
 
 A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas/). A futtatótól érkező alakokat (`*-request`, `*-result`) a `dwyt-central/central/protocol.py` modelljeiből generáljuk; ha ott változik valami, a sémát is újra kell generálni.
 
@@ -27,7 +27,7 @@ A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas
 ```json
 {
   "capabilities": {
-    "kinds": ["transcribe", "summarize", "translate"],
+    "kinds": ["transcribe", "summarize", "translate", "ask"],
     "transcribe_modes": ["captions", "cloud", "local"],
     "llm_roles": ["public", "private"],
     "allowed_domains": ["youtube.com", "youtu.be"],
@@ -53,9 +53,11 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 - A futtató a kapott munkát maga is ellenőrzi (fajta, forrás, mód, tartomány), és ami nem fér bele, azt hibával visszaadja. A központ esetleges feltörése így sem tud a futtatóval mást csináltatni, mint ezeket a szűk munkákat.
 - A bejelentett képességeket és verziókat a felület a Futtatók oldalon mutatja. Ha egy várakozó munkát egyik futtató sem tud elvégezni, a Munkák oldal ezt jelzi.
 - Új, ismeretlen képességmezőt a központ figyelmen kívül hagy; így a futtató a protokoll verziójának emelése nélkül bővíthet.
-- A munka bemenete: [transcribe-input](../schemas/transcribe-input.schema.json), [summarize-input](../schemas/summarize-input.schema.json), [translate-input](../schemas/translate-input.schema.json).
+- A munka bemenete: [transcribe-input](../schemas/transcribe-input.schema.json), [summarize-input](../schemas/summarize-input.schema.json), [translate-input](../schemas/translate-input.schema.json), [ask-input](../schemas/ask-input.schema.json).
 - **Fordítás** (`translate`, a 3. körtől): az átirat szegmensei sorszámmal; a futtató a sorszámokat megtartva adja vissza a magyar sorokat ([translate-result](../schemas/translate-result.schema.json)), a ki nem fordított sorokat kihagyja, és a számukat a `missing` mezőben jelzi. A modellt a szerep szerint maga választja (`private` → `llm_private_model`; `public` → `llm_translate_model`, ha van, különben `llm_public_model`).
 - **Választott modell** (3c): az `llm_models` képesség szerepenként sorolja fel, mely modelleket ajánlja fel a futtató a felhasználónak (az alapmodellek és az `llm_models`, illetve saját felvételhez az `llm_private_models` beállítás). Az elemoldalon választott modell a munka bemenetében `model` mezőként érkezik; a futtató csak a saját listájából fogad el modellt, mást végleges hibával (`never`) visszaad. `model` nélkül a szerep szerinti alapmodell dolgozik. Az összefoglaló utasítását a futtató írja; a verziószámát (`prompt_version`) az eredménnyel együtt visszaküldi.
+
+- **Kérdés** (`ask`, a 6. körtől): egy beszélgetés következő válasza ([ask-input](../schemas/ask-input.schema.json) → [ask-result](../schemas/ask-result.schema.json)). A bemenetben a `scope` (`item`: egy elem; `library`: a könyvtár), a `role` (`public`, saját felvétel oldalán `private`), a háttér forrásai sorszámmal (`sources`: cím, csatorna, nyelv, az összefoglaló, az átirat sorai időponttal és a magyar fordítással; `partial: true`, ha csak részletek), és az eddigi üzenetek (`messages`, az utolsó a megválaszolandó kérdés). A futtató írja az utasítást (a hivatkozás alakja: elemnél `[12:34]`, könyvtárnál `[#2 12:34]`), a modell a szerep szerinti: `public` → `llm_ask_model`, ha van, különben `llm_public_model`; `private` → `llm_private_model`; a választott `model` itt is csak a futtató listájából. A futtató a `kinds`-ban `ask`-kal jelzi, hogy tud ilyet; a régebbi futtató nem kap kérdést.
 
 ## Szívverés és megszakítás
 
@@ -70,7 +72,7 @@ A `progress` hosszú LLM-munkáknál (3c): `{"part": 3, "parts": 12, "model": "f
 
 ## Eredmény leadása
 
-`PUT /runner/v1/jobs/{job_id}/result`, a munka fajtájától függően: [transcribe-result](../schemas/transcribe-result.schema.json), [summarize-result](../schemas/summarize-result.schema.json) vagy [translate-result](../schemas/translate-result.schema.json).
+`PUT /runner/v1/jobs/{job_id}/result`, a munka fajtájától függően: [transcribe-result](../schemas/transcribe-result.schema.json), [summarize-result](../schemas/summarize-result.schema.json), [translate-result](../schemas/translate-result.schema.json) vagy [ask-result](../schemas/ask-result.schema.json).
 
 - Ismételhető: ha a futtató nem kapott választ, újra leadhatja; a központ a már tárolt eredményt nem tárolja kétszer, és ugyanazt a választ adja.
 - Érvénytelen alakra `422` (például üres szegmenslista); a futtató ezt hibaként naplózza.
@@ -103,3 +105,4 @@ Ez nem a központ protokollja, hanem a futtató és a felhasználó saját GPU-w
 ## Később
 
 - Kéréskorlát futtatónként; a GPU-gép ébredésének jelzése a felületen.
+- A kérdés válaszának folyamatos küldése (streaming) a szívverésekben (`progress.partial`).

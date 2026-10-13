@@ -292,7 +292,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | Ollama a GPU-gépen | Modellürítés az Ollama API-jával. |
 | A Whisper-worker képe registryben | Most a GPU-gépen épül (`docker compose build`); kész kép a GitHub Container Registryben (ghcr.io) egyszerűsítené az Unraid-sablont. |
 | llama-swap alias-lista | LiteLLM nélkül a `/v1/models` csak a `llama-server` bejegyzést mutatja, a presetneveket nem; a klienseknél kézzel kell megadni a nevet. |
-| whisper.cpp + sherpa-onnx minősége (7b) | Magyar videókon összevetni a WhisperX-szel, mielőtt a 7b erre épül. |
+| whisper.cpp + sherpa-onnx minősége (7b) | Magyar videókon összevetni a WhisperX-szel, mielőtt a 7b erre épül. Mérőeszköz: `dwyt-runner/tools/whisper_probe.py` (kézzel javított átirathoz méri a szó- és karakterhibát és a beszélők helyességét; Windowson fut, a tulajdonos gépén). |
 | LM Studio menünevek, `lms` viselkedése (7b) | A valódi programmal ellenőrizni (a felülete gyakran változik). |
 | WebView2 / WebKitGTK (7c) | Windows 10-en mindig megvan-e a WebView2; az AppImage-ben a WebKitGTK. |
 | Kódaláírás (7c, nyilvános induláskor) | Windows: Certum (magánszemély) vagy Azure Artifact Signing (csak szervezet az EU-ban). |

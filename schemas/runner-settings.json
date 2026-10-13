@@ -351,6 +351,31 @@
           "default": ""
         },
         {
+          "key": "local_llm_context",
+          "kind": "int",
+          "group": "llm",
+          "label": "A helyi modell kontextusa",
+          "help": "Ennyi tokennyi szöveget lát egyszerre a helyi modell. Az LM Studióban a futtató ezzel tölti be a modellt (ha a memória nem bírja, kevesebbel); az Ollama ezzel indul, ha a futtató indítja. A hosszabb szöveget a futtató részekre bontja.",
+          "choices": [],
+          "min": 4096,
+          "max": 262144,
+          "unit": "token",
+          "advanced": true,
+          "show_if": [
+            {
+              "key": "local_llm",
+              "value": "ollama"
+            },
+            {
+              "key": "local_llm",
+              "value": "lmstudio"
+            }
+          ],
+          "remote": true,
+          "readonly": false,
+          "default": 32768
+        },
+        {
           "key": "lmstudio_token",
           "kind": "secret",
           "group": "llm",
@@ -370,6 +395,31 @@
           "remote": true,
           "readonly": false,
           "default": ""
+        },
+        {
+          "key": "llm_prefer_local",
+          "kind": "bool",
+          "group": "llm",
+          "label": "A helyi modellszerver az elsődleges",
+          "help": "Akkor is a helyi modellszerver dolgozik, ha felhős cím is meg van adva (a Saját gép mód ezt állítja).",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [
+            {
+              "key": "local_llm",
+              "value": "ollama"
+            },
+            {
+              "key": "local_llm",
+              "value": "lmstudio"
+            }
+          ],
+          "remote": true,
+          "readonly": false,
+          "default": false
         },
         {
           "key": "llm_url",

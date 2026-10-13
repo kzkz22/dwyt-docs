@@ -295,7 +295,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | whisper.cpp + sherpa-onnx minősége (7b) | Magyar videókon összevetni a WhisperX-szel, mielőtt a 7b erre épül. Mérőeszköz: `dwyt-runner/tools/whisper_probe.py` (kézzel javított átirathoz méri a szó- és karakterhibát és a beszélők helyességét; Windowson fut, a tulajdonos gépén). |
 | LM Studio menünevek, `lms` viselkedése (7b) | A valódi programmal ellenőrizni (a felülete gyakran változik). |
 | WebView2 / WebKitGTK (7c) | Windows 10-en mindig megvan-e a WebView2; az AppImage-ben a WebKitGTK. |
-| Kódaláírás (7c, nyilvános induláskor) | Windows: Certum (magánszemély) vagy Azure Artifact Signing (csak szervezet az EU-ban). |
+| Kódaláírás (7c, nyilvános induláskor) | Windows: Certum (magánszemély) vagy Azure Artifact Signing (csak szervezet az EU-ban). Tapasztalat (2026-10-13): egy Windows-gépen az alkalmazásvezérlés letiltotta az aláíratlan `whisper-cli.exe`-t (WinError 4551), a pip-csomagokból betöltött natív könyvtárak (sherpa-onnx) viszont futottak. Ahol az Intelligens alkalmazásvezérlés vagy céges házirend be van kapcsolva, aláírás nélkül a tesztelők sem tudják futtatni; mérlegelni, hogy a whisper.cpp külön .exe helyett Python-csomagként (könyvtárként) kerüljön-e be. |
 
 ## 21. Döntésnapló
 

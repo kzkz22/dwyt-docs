@@ -1,0 +1,734 @@
+{
+  "groups": [
+    {
+      "id": "connection",
+      "title": "Kapcsolat a dwyt-vel",
+      "settings": [
+        {
+          "key": "server",
+          "kind": "url",
+          "group": "connection",
+          "label": "A dwyt címe",
+          "help": "Ahová a futtató munkáért fordul. A párosítás tölti ki.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": false,
+          "readonly": true,
+          "default": ""
+        },
+        {
+          "key": "token",
+          "kind": "secret",
+          "group": "connection",
+          "label": "Párosítási token",
+          "help": "A párosításkor kapott belépő; a dwyt Futtatók oldalán visszavonható.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": false,
+          "readonly": true,
+          "default": ""
+        },
+        {
+          "key": "runner_id",
+          "kind": "int",
+          "group": "connection",
+          "label": "Futtató azonosító",
+          "help": "A párosítás tölti ki.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": false,
+          "readonly": true,
+          "default": null
+        },
+        {
+          "key": "name",
+          "kind": "text",
+          "group": "connection",
+          "label": "A futtató neve",
+          "help": "Így látszik a dwyt Futtatók oldalán, például „otthoni gép”.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        }
+      ]
+    },
+    {
+      "id": "cloud",
+      "title": "Felhős átírás",
+      "settings": [
+        {
+          "key": "assemblyai_key",
+          "kind": "secret",
+          "group": "cloud",
+          "label": "AssemblyAI-kulcs",
+          "help": "A saját AssemblyAI-fiókod kulcsa. Felhős átírás csak akkor készül, ha valaki kifejezetten azt kéri; a költség a te fiókodat terheli. Javasolt egy külön kulcs keretkorláttal.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "assemblyai_url",
+          "kind": "url",
+          "group": "cloud",
+          "label": "AssemblyAI címe",
+          "help": "Csak ha az EU-s végpontot használod (https://api.eu.assemblyai.com).",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": "https://api.assemblyai.com"
+        },
+        {
+          "key": "cloud_delete_after",
+          "kind": "bool",
+          "group": "cloud",
+          "label": "Törlés az AssemblyAI-nál",
+          "help": "Az átírás után a hangot és a szöveget törli az AssemblyAI-nál.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "local",
+      "title": "Helyi átírás ezen a gépen",
+      "settings": [
+        {
+          "key": "whisper_builtin",
+          "kind": "bool",
+          "group": "local",
+          "label": "Helyi átírás ezen a gépen",
+          "help": "A whisper.cpp és a beszélők szétválasztása ezen a gépen fut, a modelleket egyszer tölti le (kb. 3,5 GB). Videókártyával gyors, nélküle lassú.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": false
+        },
+        {
+          "key": "whisper_models",
+          "kind": "list",
+          "group": "local",
+          "label": "Választható Whisper-modellek",
+          "help": "large-v3: pontosabb; large-v3-turbo: gyorsabb, kicsit pontatlanabb. Az első az alapértelmezett. Külön GPU-gépnél az ott telepített nevek.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": [
+            "large-v3",
+            "large-v3-turbo"
+          ]
+        },
+        {
+          "key": "diarize_threshold",
+          "kind": "float",
+          "group": "local",
+          "label": "Beszélők szétválasztása",
+          "help": "Ha a beküldéskor nincs megadva a beszélők száma, ebből becsli: nagyobb érték kevesebb beszélőt ad. A 0,8 egy 8 beszélős interjún mérve a legjobb.",
+          "choices": [],
+          "min": 0.3,
+          "max": 1.5,
+          "unit": "",
+          "advanced": true,
+          "show_if": [
+            {
+              "key": "whisper_builtin",
+              "value": true
+            }
+          ],
+          "remote": true,
+          "readonly": false,
+          "default": 0.8
+        },
+        {
+          "key": "polite_mode",
+          "kind": "bool",
+          "group": "local",
+          "label": "Udvarias mód",
+          "help": "Ha valaki épp használja a helyi nyelvi modellt, az átírás előtt megvárja, hogy egy percig ne használja (legfeljebb a megadott ideig), és csak utána üríti ki a videókártyáról.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [
+            {
+              "key": "whisper_builtin",
+              "value": true
+            }
+          ],
+          "remote": true,
+          "readonly": false,
+          "default": true
+        },
+        {
+          "key": "polite_wait_min",
+          "kind": "int",
+          "group": "local",
+          "label": "Udvarias mód: leghosszabb várakozás",
+          "help": "Ennyi perc után akkor is kiüríti a modellt, ha még használják.",
+          "choices": [],
+          "min": 0,
+          "max": 120,
+          "unit": "perc",
+          "advanced": false,
+          "show_if": [
+            {
+              "key": "polite_mode",
+              "value": true
+            }
+          ],
+          "remote": true,
+          "readonly": false,
+          "default": 10
+        },
+        {
+          "key": "whisper_cli",
+          "kind": "path",
+          "group": "local",
+          "label": "A whisper.cpp helye",
+          "help": "Üresen a futtató maga intézi (Windowson letölti). Megadható a whisper-cli program vagy egy kicsomagolt kiadás mappája.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": false,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "whisper_threads",
+          "kind": "int",
+          "group": "local",
+          "label": "Processzorszálak",
+          "help": "0: a whisper.cpp dönt.",
+          "choices": [],
+          "min": 0,
+          "max": 256,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": 0
+        },
+        {
+          "key": "whisper_url",
+          "kind": "url",
+          "group": "local",
+          "label": "Külön GPU-gép (AI-router)",
+          "help": "Ha a Whisper egy másik gépen fut (dwyt-airouter és dwyt-gpu), annak címe; ilyenkor ez a gép nem ír át maga.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "whisper_timeout_min",
+          "kind": "int",
+          "group": "local",
+          "label": "Egy átírás leghosszabb ideje",
+          "help": "Hosszú felvételnél a hossz négyszerese számít, ha az több.",
+          "choices": [],
+          "min": 5,
+          "max": 1440,
+          "unit": "perc",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": 60
+        }
+      ]
+    },
+    {
+      "id": "llm",
+      "title": "Összefoglaló, fordítás, kérdések",
+      "settings": [
+        {
+          "key": "local_llm",
+          "kind": "choice",
+          "group": "llm",
+          "label": "Helyi modellszerver",
+          "help": "Az összefoglalók ezen a gépen készülnek, a választott programmal. A futtató elindítja, letölti és betölti a modelleket.",
+          "choices": [
+            {
+              "value": "",
+              "label": "nincs"
+            },
+            {
+              "value": "ollama",
+              "label": "Ollama"
+            },
+            {
+              "value": "lmstudio",
+              "label": "LM Studio"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "local_llm_url",
+          "kind": "url",
+          "group": "llm",
+          "label": "A helyi modellszerver címe",
+          "help": "Üresen a szokásos cím ezen a gépen.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [
+            {
+              "key": "local_llm",
+              "value": "ollama"
+            },
+            {
+              "key": "local_llm",
+              "value": "lmstudio"
+            }
+          ],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "lmstudio_token",
+          "kind": "secret",
+          "group": "llm",
+          "label": "LM Studio API-token",
+          "help": "Csak ha az LM Studióban bekapcsoltad az API-tokent.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [
+            {
+              "key": "local_llm",
+              "value": "lmstudio"
+            }
+          ],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "llm_url",
+          "kind": "url",
+          "group": "llm",
+          "label": "Felhős vagy saját LLM-szerver címe",
+          "help": "Például https://openrouter.ai/api/v1, vagy a saját LiteLLM-ed. Ha meg van adva, ez az elsődleges a helyi modellszerverrel szemben.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "llm_key",
+          "kind": "secret",
+          "group": "llm",
+          "label": "Az LLM-szerver kulcsa",
+          "help": "Javasolt egy külön kulcs keretkorláttal.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "llm_public_model",
+          "kind": "text",
+          "group": "llm",
+          "label": "Modell a nyilvános videókhoz",
+          "help": "Ezzel készül a YouTube-videók összefoglalója.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "llm_private_model",
+          "kind": "text",
+          "group": "llm",
+          "label": "Modell a saját felvételekhez",
+          "help": "A saját felvételek szövege csak ehhez a modellhez kerül; helyi modell javasolt.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "llm_translate_model",
+          "kind": "text",
+          "group": "llm",
+          "label": "Modell a fordításhoz",
+          "help": "Üresen a nyilvános videók modellje.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "llm_ask_model",
+          "kind": "text",
+          "group": "llm",
+          "label": "Modell a kérdésekhez",
+          "help": "Üresen a nyilvános videók modellje; egy gondolkodó modell itt jobb válaszokat ad.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "llm_models",
+          "kind": "list",
+          "group": "llm",
+          "label": "További választható modellek (nyilvános)",
+          "help": "Ezek közül is választhatsz az elem oldalán.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": []
+        },
+        {
+          "key": "llm_private_models",
+          "kind": "list",
+          "group": "llm",
+          "label": "További választható modellek (saját felvételek)",
+          "help": "Csak amit ide felveszel, ahhoz kerülhet saját felvétel szövege.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": []
+        },
+        {
+          "key": "llm_model_notes",
+          "kind": "map",
+          "group": "llm",
+          "label": "Modellek leírása",
+          "help": "Ha az LLM-szerver nem mondja meg, mi fut egy név mögött: név=leírás.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": {}
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "title": "Források és saját felvételek",
+      "settings": [
+        {
+          "key": "allowed_domains",
+          "kind": "list",
+          "group": "sources",
+          "label": "Engedélyezett oldalak",
+          "help": "Honnan tölthet le a futtató (* = bárhonnan).",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": [
+            "youtube.com",
+            "youtu.be"
+          ]
+        },
+        {
+          "key": "cookies_file",
+          "kind": "path",
+          "group": "sources",
+          "label": "Sütifájl",
+          "help": "Csak ha egy oldal bejelentkezést kér (Netscape-formátumú cookies.txt).",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": false,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "watch_dirs",
+          "kind": "list",
+          "group": "sources",
+          "label": "Figyelt mappák",
+          "help": "Az ide kerülő hang- és videófájlokat a futtató magától átírja; a fájlok nem hagyják el a gépet.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": []
+        },
+        {
+          "key": "watch_mode",
+          "kind": "choice",
+          "group": "sources",
+          "label": "Figyelt mappák: átírás módja",
+          "help": "Helyben vagy felhőben.",
+          "choices": [
+            {
+              "value": "local",
+              "label": "helyben"
+            },
+            {
+              "value": "cloud",
+              "label": "felhőben"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": "local"
+        },
+        {
+          "key": "watch_model",
+          "kind": "text",
+          "group": "sources",
+          "label": "Figyelt mappák: modell",
+          "help": "Üresen az alapértelmezett.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "watch_language",
+          "kind": "text",
+          "group": "sources",
+          "label": "Figyelt mappák: nyelv",
+          "help": "Például hu; üresen felismeri.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "watch_summarize",
+          "kind": "bool",
+          "group": "sources",
+          "label": "Figyelt mappák: összefoglaló",
+          "help": "Az átírás után összefoglaló is készül.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": true
+        },
+        {
+          "key": "max_file_mb",
+          "kind": "int",
+          "group": "sources",
+          "label": "Legnagyobb fájl",
+          "help": "",
+          "choices": [],
+          "min": 1,
+          "max": 100000,
+          "unit": "MB",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": 4096
+        },
+        {
+          "key": "max_duration_min",
+          "kind": "int",
+          "group": "sources",
+          "label": "Leghosszabb felvétel",
+          "help": "",
+          "choices": [],
+          "min": 1,
+          "max": 1440,
+          "unit": "perc",
+          "advanced": true,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": 360
+        }
+      ]
+    },
+    {
+      "id": "advanced",
+      "title": "Haladó",
+      "settings": [
+        {
+          "key": "work_dir",
+          "kind": "path",
+          "group": "advanced",
+          "label": "Munkamappa",
+          "help": "Ide kerülnek az ideiglenes fájlok; üresen a rendszer ideiglenes mappája.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": false,
+          "readonly": false,
+          "default": ""
+        },
+        {
+          "key": "secret_store",
+          "kind": "choice",
+          "group": "advanced",
+          "label": "A kulcsok helye",
+          "help": "Alapból a rendszer kulcstárolója, ha van.",
+          "choices": [
+            {
+              "value": "auto",
+              "label": "automatikus"
+            },
+            {
+              "value": "keyring",
+              "label": "a rendszer kulcstárolója"
+            },
+            {
+              "value": "file",
+              "label": "a beállítási fájl"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": true,
+          "show_if": [],
+          "remote": false,
+          "readonly": false,
+          "default": "auto"
+        }
+      ]
+    }
+  ]
+}

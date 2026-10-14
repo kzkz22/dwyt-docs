@@ -620,6 +620,22 @@
           ]
         },
         {
+          "key": "ytdlp_auto_update",
+          "kind": "bool",
+          "group": "sources",
+          "label": "A yt-dlp frissítése magától",
+          "help": "A YouTube gyakran változik; a futtató naponta (és egy elutasított letöltés után) megnézi, van-e újabb yt-dlp, és két munka között telepíti.",
+          "choices": [],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": true
+        },
+        {
           "key": "cookies_file",
           "kind": "path",
           "group": "sources",

@@ -454,6 +454,35 @@
           "default": ""
         },
         {
+          "key": "llm_reasoning",
+          "kind": "choice",
+          "group": "llm",
+          "label": "Gondolkodás (felhős modellnél)",
+          "help": "OpenRouter-modelleknél: a modell a válasz előtt végiggondolja a feladatot. Alaposabb, de lassabb és drágább (a gondolkodás is fizetős token). Ahol a modell mindig gondolkodik, ott nem kapcsolható ki.",
+          "choices": [
+            {
+              "value": "auto",
+              "label": "a modell alapértelmezése"
+            },
+            {
+              "value": "on",
+              "label": "be"
+            },
+            {
+              "value": "off",
+              "label": "ki"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": "auto"
+        },
+        {
           "key": "llm_public_model",
           "kind": "text",
           "group": "llm",

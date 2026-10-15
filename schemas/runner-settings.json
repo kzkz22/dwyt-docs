@@ -649,6 +649,35 @@
           ]
         },
         {
+          "key": "auto_update",
+          "kind": "choice",
+          "group": "sources",
+          "label": "A futtató frissítése magától",
+          "help": "Naponta megnézi, van-e aláírt újabb változat, és két munka között telepíti. Automatikusan: az asztali alkalmazásban be; szerveren ki, ott a dwyt Futtatók oldala szól, és a Frissítés most gombbal telepíthető.",
+          "choices": [
+            {
+              "value": "auto",
+              "label": "automatikus"
+            },
+            {
+              "value": "on",
+              "label": "be"
+            },
+            {
+              "value": "off",
+              "label": "ki"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": true,
+          "readonly": false,
+          "default": "auto"
+        },
+        {
           "key": "ytdlp_auto_update",
           "kind": "bool",
           "group": "sources",

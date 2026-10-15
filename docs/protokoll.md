@@ -49,6 +49,8 @@ A kérések és válaszok pontos alakja JSON Schema-ként: [schemas/](../schemas
 }
 ```
 
+A futtató (0.11.1-től) a kérésben a `holding` listában megmondja, mely munkákon dolgozik még (egyszerre egy munkát végez, így munkakéréskor ez üres). Ha a központ szerint ennél a futtatónál fut egy munka, amely nincs a listában (a futtató a munka közben újraindult), a központ azonnal visszateszi a sorba, a már megszakítottat pedig lezárja; nem várja ki a lízing lejártát. A régebbi futtató nem küldi a mezőt, nála ez elmarad.
+
 Ismeretlen fajtát vagy módot a központ nem utasít el (egy újabb futtató többet tudhat), csak nem ad rá munkát.
 
 Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
@@ -75,11 +77,11 @@ Válasz: `204` (nincs munka; a futtató azonnal újra kér) vagy `200`:
 
 ## Szívverés és megszakítás
 
-`POST /runner/v1/jobs/{job_id}/heartbeat {"stage": "captions", "progress": {...}}` legalább a lízing harmadánként (a futtató 60 másodpercenként, és minden új lépésnél azonnal küldi). Válasz: `{"lease_s": 900, "cancel": false}`.
+`POST /runner/v1/jobs/{job_id}/heartbeat {"stage": "captions", "progress": {...}}` legalább a lízing harmadánként (a futtató 30 másodpercenként, és minden új lépésnél azonnal küldi). Minden futtatói kérés, a szívverés is, frissíti a futtató „utoljára jelentkezett” idejét, így egy hosszú munka közben is elérhetőnek látszik. Válasz: `{"lease_s": 900, "cancel": false}`.
 
 A `progress` hosszú LLM-munkáknál (3c): `{"part": 3, "parts": 12, "model": "forditas"}` (fordításnál a köteg, darabolt összefoglalónál a lépés sorszáma); a felület az elemoldalon és a Munkák oldalon mutatja. Legfeljebb 5 másodpercenként küldi.
 
-- `cancel: true`: a felhasználó megszakította; a futtató a következő lépésnél abbahagyja, és `fail`-lel zárja (a központ megszakítottnak jelöli).
+- `cancel: true`: a felhasználó megszakította; a futtató a következő lépésnél abbahagyja, és `fail`-lel zárja (a központ megszakítottnak jelöli). A nyelvi modell válaszát a futtató folyamként (stream) kéri, így egy összefoglaló, fordítás vagy kérdés a válasz következő darabjánál áll le; ha a szerver 3 percig (helyi modellszervernél 10 percig) egy bájtot sem küld, a kapcsolatot halottnak tekinti, és a munkát `later`-rel adja vissza.
 - `404`/`409`: a munka már nem ezé a futtatóé (törölték, vagy lejárt a lízing, és más kapta meg); a futtató abbahagyja, és nem ad le eredményt.
 - Lejárt lízing (a futtató eltűnt): a munka visszakerül a sorba; a próbálkozások száma nő, és a 6. után a munka hibával áll le.
 - A lépések nevei (`download`, `captions`, `prepare-audio`, `upload`, `transcribe`, `summarize`, `write`; helyi Whispernél még `waiting-for-gpu`, `load-audio`, `align`, `diarize`) a felületen magyarul látszanak.

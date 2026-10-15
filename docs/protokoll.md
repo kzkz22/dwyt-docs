@@ -116,6 +116,52 @@ Ez nem a központ protokollja, hanem a futtató és a felhasználó saját GPU-w
 - **Figyelt mappa:** a futtató az új fájlt bejelenti: `POST /runner/v1/local-items {"sha256", "name", "size", "options", "summarize"}` ([local-item-request](../schemas/local-item-request.schema.json)). Válasz: `{"item_id", "job_id", "existing"}`; `existing: true`, ha ennek a fájlnak már van átirata (nincs új munka). A munka forrása `{"kind": "local", "sha256", "name", "size"}`, és csak az a futtató kapja meg, amelyik bejelentette; a fájl nem hagyja el a gépet.
 - Mindkettőhöz a futtató a `source_kinds` képességben jelenti, mit tud (`upload`; figyelt mappával `local` is). A saját felvétel eredménye nem osztható meg, az összefoglaló és a fordítás `private` szereppel kérődik.
 
+## Telepítés egy paranccsal (7d)
+
+A dwyt Futtatók oldalán a gazda kér egy **telepítőkódot**. Ez 5 percig él, egyszer használható, és a parancsban van: `curl -fsSL https://KÖZPONT/futtato.sh | sh -s -- KÓD`. A `/futtato.sh` a központ címével kitöltött telepítő szkript (a szövege bárki által olvasható, kód és titok nincs benne).
+
+- `POST /runner/v1/pair/redeem {"code", "name"}` (token nélkül; ugyanaz a kéréskorlát, mint a `pair/start`-nál) → `200 {"runner_id", "name", "token"}`. Lejárt, felhasznált vagy ismeretlen kódra `410`. Jóváhagyni nem kell: a kód maga a jóváhagyás, ezért csak 5 percig él.
+- A szkript a kódot **legelőször** váltja be, még a letöltések előtt: `?format=env` esetén a válasz szöveges (`DWYT_RUNNER_ID=…`, `DWYT_TOKEN=…`), mert egy puszta `sh` nem olvas JSON-t. A tokent a szkript csak a tulajdonosa által olvasható ideiglenes fájlban tartja, és a `dwyt-runner adopt` parancsnak környezeti változóban adja át (parancssori argumentumban látszana a folyamatlistában).
+
+## Távoli beállítás (7d)
+
+Szerver-telepítésnél a futtató beállításai a dwyt Futtatók → Beállítás oldaláról állíthatók (terv 15b, 18.11). A központ itt is csak tárol és továbbít: a futtató kérdez, és ő dönt minden értékről.
+
+**Bekapcsolás.** A futtató `remote_settings` beállítása `auto` | `on` | `off`; `auto` a parancssoros (`run`) futtatónál be, az asztali alkalmazásnál ki. Ez a beállítás a dwyt-ből nem állítható. Kikapcsolva a futtató csak a változatát és a telepítés fajtáját jelenti, a beállításait nem.
+
+**Jelentés.** `PUT /runner/v1/settings`, induláskor, minden (helyi vagy távoli) változás után, és óránként:
+
+```json
+{
+  "runner_version": "0.10.0", "latest_version": "0.10.1", "install": "service",
+  "remote": true,
+  "public_key": "-----BEGIN PUBLIC KEY-----\n…",
+  "describe": {"groups": [...]},
+  "modes": [{"id": "felho", "title": "Felhő", "text": "…", "values": {"whisper_builtin": "nem", ...}}],
+  "mode": "egyeni",
+  "values": {"name": "Otthoni LXC", "polite_wait_min": "10", "allowed_domains": "youtube.com, youtu.be", ...},
+  "secrets_set": ["assemblyai_key", "llm_key"]
+}
+```
+
+- `install`: `service` (a `run` parancs, például systemd alatt), vagy `app` (asztali alkalmazás). A „Frissítés most” csak a `service`-nek ajánlható fel.
+- `latest_version`: a legújabb változat, amit a futtató naponta egyszer a forrásából kiolvas. Üres, ha nem tudja.
+- `describe`: a beállítások leírása, ugyanaz, mint a `dwyt-runner config describe --json` ([runner-settings](../schemas/runner-settings.json)). A központ ebből rajzolja a Beállítás oldalt, így egy újabb futtató új mezői a központ módosítása nélkül megjelennek.
+- `values`: minden nem titkos beállítás **szövegként**, abban az alakban, ahogy a `config set` is elfogadja (lista: vesszővel, térkép: `név=leírás; …`, igen/nem). Titkos értéket a futtató soha nem küld; a `secrets_set` csak azt mondja meg, melyik kulcs van megadva.
+- `public_key`: a futtató saját RSA-kulcsának nyilvános fele (3072 bit, PEM). A titkos fele a futtató beállítási mappájában van, csak a tulajdonosa olvashatja.
+- `remote: false` esetén a `describe`, `modes`, `values`, `secrets_set` és `public_key` hiányzik; a központ ilyenkor a korábban tárolt értékeket is törli.
+- Ha a korábban jelentett értékekhez képest valami a futtató gépén változott, a központ ezt „a futtató gépén” bejegyzésként naplózza (kulcsnál csak azt, hogy megadták vagy törölték).
+- Válasz: `{"pending": 0}`, vagyis ennyi változás vár átadásra.
+
+**Változás.** A gazda a Beállítás oldalon menti a változásokat. A böngésző a kulcsokat a futtató nyilvános kulcsával titkosítja (RSA-OAEP, SHA-256, WebCrypto), így a kulcs nyílt szövegként el sem jut a központhoz. Egy mentés egy változás: értékek szövegként, titkosított kulcsok, vagy egy művelet.
+
+- A munkakérés (`claim`) válaszában a `Dwyt-Settings: pending` fejléc jelzi, hogy változás vár. Ha nincs munka, a központ ilyenkor nem tartja nyitva a long-pollt, hanem azonnal `204`-et ad.
+- `GET /runner/v1/settings/changes` → `{"changes": [{"id": 7, "values": {"polite_wait_min": "15"}, "secrets": {"llm_key": "<base64>"}, "clear": ["assemblyai_key"], "action": null}]}`. A kiadott változást a központ „átadva” állapotúra teszi, és többé nem jelzi. Ha 10 percen belül nincs eredmény, „nem jelzett vissza” hibával zárja.
+- `action`: `null` vagy `"update"` (Frissítés most).
+- A futtató minden értéket a saját leírása szerint ellenőriz (ugyanaz, mint a `config set`). Csak a dwyt-ből állítható (`remote: true`, nem `readonly`) mezőket fogadja el, a többit elutasítja. A kulcsot a saját titkos kulcsával fejti meg, elmenti, majd egy próbahívással kipróbálja (AssemblyAI, LLM).
+- `POST /runner/v1/settings/changes/{id}/result {"applied": [...], "errors": {"kulcs": "magyar ok"}, "checks": {"llm_key": [true, "rendben"]}, "message": "…"}`. A központ ezután törli a változás titkosított kulcsait, és elkészül a napló bejegyzése és az értesítés. Utána a futtató új jelentést küld.
+- **Frissítés most** (`action: "update"`): a futtató csak `service` telepítésnél és munka nélkül hajtja végre. Ilyenkor ugyanazt a `uv tool install --force --refresh …` parancsot futtatja, mint a kézi frissítés (a meglévő kiegészítőkkel). Siker után leadja az eredményt, és újraindul: systemd alatt kilép (75-ös kóddal, amire a szolgáltatás újraindítja), máskülönben önmagát indítja újra. Aláírás-ellenőrzés még nincs (terv 18.16, a 7c-vel jön).
+
 ## Később
 
 - Kéréskorlát futtatónként; a GPU-gép ébredésének jelzése a felületen.

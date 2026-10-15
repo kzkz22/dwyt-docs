@@ -65,10 +65,10 @@ page("1-futtatok", """
 </section>
 <section class="card">
   <h2>Új futtató</h2>
-  <div class="mock-tabs"><span class="on">Szerverre (Linux)</span><span>Asztali gépre</span><span>Már telepített futtatóhoz</span></div>
+  <div class="mock-tabs"><span class="on">Szerverre (Linux)</span><span>Asztali gépre</span><span>Párosítás kóddal</span></div>
   <p>Másold be ezt a parancsot a szerveren (VPS, LXC, NAS) – rendszergazdaként vagy a saját felhasználóddal:</p>
   <div class="cmd"><code>curl -fsSL https://dwyt.iodate.date/futtato.sh | sh -s -- K7Q2-M9XA</code><button class="small">Másolás</button></div>
-  <p class="muted">A parancs 1 óráig érvényes, egyszer használható. Telepíti a futtatót (uv-vel, rendszergazdai jog nélkül is), szolgáltatásként elindítja, és ehhez a fiókhoz párosítja – jóváhagyni nem kell. Utána minden beállítás innen, a <strong>Beállítás</strong> gombbal megy; a kulcsokat a böngésződ titkosítja a futtató saját kulcsával.</p>
+  <p class="muted">A parancs 5 percig érvényes, egyszer használható. Telepíti a futtatót (uv-vel, rendszergazdai jog nélkül is), szolgáltatásként elindítja, és ehhez a fiókhoz párosítja – jóváhagyni nem kell. Utána minden beállítás innen, a <strong>Beállítás</strong> gombbal megy; a kulcsokat a böngésződ titkosítja a futtató saját kulcsával.</p>
   <p class="muted">Mit csinál pontosan? <a href="#">A telepítő szövege</a> (érdemes elolvasni, mielőtt futtatod).</p>
 </section>
 """)

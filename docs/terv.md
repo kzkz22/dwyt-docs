@@ -279,12 +279,48 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 | 6. (döntések: 17.1–17.3) | Kérdezés a könyvtárról a felületen belül (15a): beszélgetés az elem oldalán és a Keresés oldalon, `ask` munkafajta a futtatón, Markdown-letöltés. | central, runner, airouter, docs |
 | Felület (kész: 16.9) | A tulajdonos StockMaster alkalmazásának kinézete és felépítése: bal oldali, becsukható menü, mobilon becsúszó menü, világos és sötét téma, akadálymentesség. | central |
 | 7. (döntések: 18.1–18.20; terv: 15b; a 7a és a 7b kész) | Asztali alkalmazás és szerver-telepítés. **7a** (kész) központ: felirat-használati szabály (18.9), figyelmeztetés régóta hallgató futtatóra. **7b** (kész, dwyt-runner 0.8) futtató-mag: Ollama / LM Studio, whisper.cpp + sherpa-onnx, modellcsere és udvarias mód, gépvizsgálat és próbafuttatás, kulcstároló, a beállítások leírása. **7c** (kész, a kódaláírás kivételével: ablak, tálcaikon, indulás bejelentkezéskor, telepítő lépései – dwyt-runner 0.9; csomagok és aláírt frissítés – 0.11, az első aláírt kiadás 2026. október 15.) felület és csomagolás: helyi kezelőfelület, Windows-telepítő, Linux AppImage, tálca, aláírt frissítés. **7d** (kész: dwyt-central 0.16, dwyt-runner 0.10; minták: [docs/minta-7d](minta-7d/)) távoli beállítás: egysoros telepítő, végponttól végpontig titkosított kulcsok, Beállítás oldal a dwyt-ben, napló, „Frissítés most”. **7e** útmutatók ([docs/utmutato](utmutato/)), letöltőoldal (a Futtatók oldal „Asztali gépre” füle a legújabb kiadás telepítőire mutat). | central, runner, docs |
+| 8. (következik; terv: 19a) | A központ új funkciói: Megnézendő-lista a YouTube-fiókban (saját lejátszási listával), megosztás telefonról (telepíthető oldal, megosztási cél), olvasott jelölés, gyors döntés a Postaládában. | central, docs |
+| 9. (később) | Többnyelvűség: a felület (központ, futtató ablaka és telepítője), az összefoglaló, a kérdések, a fordítás és a keresés nyelvei (19a). | central, runner, docs |
 | Később (tulajdonosi döntés, 2026. október 15.) | Hátrébb sorolva: passkey, webes push-értesítés, további belépési módok. Előbb a központ új funkciói, utána a többnyelvűség (8. kör). A Windows-telepítő és az önfrissítés valódi gépen kipróbálva, működik; a Linux AppImage még nem. | central |
 
 - Az adatbázis-séma már az 1. körben az eredménytárral (7. fejezet) készül, akkor is, ha az újrahasznosítás csak a 3. körben működik.
 - **Cím:** `dwyt.iodate.date` (a tulajdonos `iodate.date` domainjének aldomainje), az Apache-on külön virtual hosttal és Let's Encrypt-tanúsítvánnyal. Fejlesztés alatt a Google-belépés `http://localhost` visszairányítással is kipróbálható.
 - **Hol fut az 1. körben:** új Proxmox LXC (Debian, PostgreSQL 17 + `pgvector`, systemd). 2026. október 11. óta az interneten is elérhető (átnézés: 17. fejezet).
 - **Automatikus tesztelés** (GitHub Actions) minden repóban az 1. körtől: tesztek, ruff, pip-audit; a futtató tesztjei Linuxon, Windowson és macOS-en is.
+
+## 19a. Várakozó feladatok
+
+Amit a tulajdonos kért vagy jóváhagyott, de még nem készült el (2026. október 15.). A „mi van még hátra” kérdésre ez a lista a válasz; ami elkészül, átkerül a 19. fejezet köreibe és a döntésnaplóba.
+
+**8. kör – következik (a központ új funkciói):**
+1. **Megnézendő-lista.** A YouTube a beépített „Később megnézendő” listát programból nem engedi írni, ezért a dwyt egy saját lejátszási listát hoz létre a felhasználó fiókjában („dwyt – megnézendő”), és oda teszi a videót. A Könyvtárban, az elem oldalán és a Postaládában egy kapcsolóval lehet hozzáadni vagy kivenni. Ehhez írási engedély kell a YouTube-fiókhoz (az első használatkor külön hozzájárulással). Ha a felhasználó a YouTube-on veszi ki a listából, a napi szinkron átveszi. Napi keret: kb. 200 hozzáadás.
+2. **Megosztás telefonról.** A dwyt telepíthető a kezdőképernyőre, és megosztási célként megjelenik (például a YouTube-alkalmazás Megosztás menüjében); egy érintéssel összefoglaló kérhető.
+3. **Olvasott jelölés.** Az összefoglaló olvasottnak jelölhető (és magától is azzá válik, ha megnyitják); a Könyvtár és a Postaláda szűrhető az olvasatlanokra.
+4. **Gyors döntés a Postaládában.** Az *Új* fülön (még nincs összefoglaló) a videó leírásának eleje látszik a feliratkozási hírcsatornából; gombok: Összefoglaló kérése, Megnézendő, Kihagyás. A *Kész* fülön az összefoglaló eleje látszik; gombok: Megnézendő, Elolvastam (kikerül a Kész fül alapnézetéből, olvasottként). Billentyűzettel is (j/k léptet, ö: összefoglaló, m: megnézendő, x: kihagyás / elolvastam).
+
+**Később – kényelem:**
+5. Hivatkozás a releváns részre: a keresési találat és a kérdés válaszának hivatkozása az átirat adott soránál nyílik, kiemelve, és onnan a videó ugyanazon pontjára.
+6. Mentett szűrők a Könyvtárban.
+7. Várható befejezési idő a futó munkáknál (a korábbi munkák sebességéből).
+8. Folyamatosan íródó válasz a kérdéseknél (a futtató már darabonként kapja a választ, 0.11.1).
+
+**Később – új funkciók:**
+9. Érdekesség szerinti sorrend a Postaládában: a felhasználó leírja, mi érdekli, és jelöli, mit tartott jónak; minden új videóhoz rövid „érdemes-e” indoklás és pontszám.
+10. Fejezetek: időbélyeges fejezetlista az összefoglaló mellett.
+11. Heti összefoglaló csatornánként vagy címkénként.
+12. Podcastok és más RSS-források követése (nem csak YouTube).
+13. Jegyzetkiemelés: az átirat egy részét időbélyeges idézetként a jegyzetbe menteni; export Obsidianba / Notionba.
+14. Megosztható, visszavonható link egy összefoglalóhoz (csak olvasható oldal).
+15. Felolvasott összefoglaló (a magyar gépi felolvasás minőségétől függ).
+16. Modellösszevetés a saját videókon (olcsóbb modellek az összefoglalóhoz és a kérdésekhez; a mostani eszközökkel: további választható modellek, összefoglaló-változatok).
+
+**9. kör – többnyelvűség:** első körben magyar, angol, német, olasz, spanyol, francia; később holland, svéd, dán, portugál, román, cseh, szlovák, szlovén, horvát, bolgár, lengyel, finn, lett, litván. Részei: felhasználónkénti nyelv (az összefoglaló, a fordítás célnyelve, a kérdésekre a kérdés nyelvén), nyelvfüggetlen utasítások a futtatóban, fordítások nyelvenként, szöveges keresés nyelvenkénti szótövezéssel (ahol a PostgreSQL-nek nincs: szótövezés nélkül, hasonlóság és vektor), a felület fordítása (központ, értesítések, e-mailek, MCP-eszközök, futtató ablaka és Windows-telepítője), beszélőcímke és dátumformátum, a helyi modellek gyengébb kisebb nyelveken (jelezni a Működés lapon). Előtte minták.
+
+**Hátrébb sorolva (tulajdonosi döntés):** passkey, webes push-értesítés, további belépési módok (Microsoft, GitHub).
+
+**Nyilvános induláskor:** Windows-kódaláírás, macOS-futtató (és helyi Whisper rajta).
+
+**Ellenőrzésre vár:** a Linux AppImage valódi asztali gépen.
 
 ## 20. Nyitott kérdések
 

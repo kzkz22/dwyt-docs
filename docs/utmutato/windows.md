@@ -15,7 +15,7 @@ A futtató ablaka lépésenként végigvezet:
 1. **Üdvözlés.**
 2. **A géped:** videókártya, memória, szabad hely; a **Próbafuttatás** egy 33 másodperces mintát ír át, és egy rövid összefoglalót készít, majd lámpákkal megmondja, mire elég a gép.
 3. **Működési mód:** Felhő, Vegyes, Saját gép vagy Egyéni (lásd az [útmutatók elején](README.md)).
-4. **Hozzávalók:** csak ami a választott módhoz kell. Például a beszédfelismerő letöltése (kb. 3,5 GB, egyszer), az OpenRouter- vagy AssemblyAI-kulcs (a futtató azonnal kipróbálja), a helyi modellszerver (Ollama / LM Studio) elindítása és egy modell letöltése. A kulcsokat a Windows Hitelesítőadat-kezelője őrzi; a dwyt nem látja őket.
+4. **Hozzávalók:** csak ami a választott módhoz kell. Például a beszédfelismerő letöltése (kb. 3,5 GB, egyszer), az OpenRouter- vagy AssemblyAI-kulcs (a futtató azonnal kipróbálja; Felhő módban kiválasztod, ki írja az összefoglalót: az AssemblyAI próba-modellje ugyanazzal a kulccsal, vagy az OpenRouter), a helyi modellszerver (Ollama / LM Studio) elindítása és egy modell letöltése. A kulcsokat a Windows Hitelesítőadat-kezelője őrzi; a dwyt nem látja őket.
 5. **Párosítás:** a futtató megnyitja a dwyt Futtatók oldalát a kóddal kitöltve. Nézd meg, hogy a kód ugyanaz-e, mint a futtató ablakában, és nyomd meg a **Jóváhagyás** gombot.
 6. **Kész:** ha szeretnéd, a futtató bejelentkezéskor magától elindul (csak a tálcaikon, ablak nélkül).
 

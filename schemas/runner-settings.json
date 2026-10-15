@@ -67,6 +67,35 @@
           "remote": true,
           "readonly": false,
           "default": ""
+        },
+        {
+          "key": "remote_settings",
+          "kind": "choice",
+          "group": "connection",
+          "label": "A dwyt-ből is állítható",
+          "help": "A beállítások a dwyt Futtatók oldaláról, a Beállítás gombbal is módosíthatók; a kulcsokat a böngésző a futtató saját kulcsával titkosítja. Minden változás naplóba kerül. Automatikusan: szerveren be, az asztali alkalmazásban ki.",
+          "choices": [
+            {
+              "value": "auto",
+              "label": "automatikus"
+            },
+            {
+              "value": "on",
+              "label": "be"
+            },
+            {
+              "value": "off",
+              "label": "ki"
+            }
+          ],
+          "min": null,
+          "max": null,
+          "unit": "",
+          "advanced": false,
+          "show_if": [],
+          "remote": false,
+          "readonly": false,
+          "default": "auto"
         }
       ]
     },

@@ -292,7 +292,7 @@ Körönként egy kipróbálható szelet. A régi rendszer közben fut tovább, e
 
 Amit a tulajdonos kért vagy jóváhagyott, de még nem készült el (2026. október 15.). A „mi van még hátra” kérdésre ez a lista a válasz; ami elkészül, átkerül a 19. fejezet köreibe és a döntésnaplóba.
 
-**8. kör – következik (a központ új funkciói):**
+**8. kör – következik (a központ új funkciói; minták: [docs/minta-8](minta-8/)):**
 1. **Megnézendő-lista.** A YouTube a beépített „Később megnézendő” listát programból nem engedi írni, ezért a dwyt egy saját lejátszási listát hoz létre a felhasználó fiókjában („dwyt – megnézendő”), és oda teszi a videót. A Könyvtárban, az elem oldalán és a Postaládában egy kapcsolóval lehet hozzáadni vagy kivenni. Ehhez írási engedély kell a YouTube-fiókhoz (az első használatkor külön hozzájárulással). Ha a felhasználó a YouTube-on veszi ki a listából, a napi szinkron átveszi. Napi keret: kb. 200 hozzáadás.
 2. **Megosztás telefonról.** A dwyt telepíthető a kezdőképernyőre, és megosztási célként megjelenik (például a YouTube-alkalmazás Megosztás menüjében); egy érintéssel összefoglaló kérhető.
 3. **Olvasott jelölés.** Az összefoglaló olvasottnak jelölhető (és magától is azzá válik, ha megnyitják); a Könyvtár és a Postaláda szűrhető az olvasatlanokra.

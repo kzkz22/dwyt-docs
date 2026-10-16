@@ -1,5 +1,130 @@
 {
   "$defs": {
+    "PageIn": {
+      "description": "The page a recording was found on (the runner's page resolver, decision 19.10).",
+      "properties": {
+        "url": {
+          "maxLength": 2000,
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "site": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Site"
+        },
+        "published": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 8000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        },
+        "chosen": {
+          "$ref": "#/$defs/PageMediaIn"
+        },
+        "candidates": {
+          "items": {
+            "$ref": "#/$defs/PageMediaIn"
+          },
+          "maxItems": 10,
+          "title": "Candidates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "url",
+        "chosen"
+      ],
+      "title": "PageIn",
+      "type": "object"
+    },
+    "PageMediaIn": {
+      "properties": {
+        "kind": {
+          "enum": [
+            "youtube",
+            "player",
+            "dayfile",
+            "podcast",
+            "file"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "url": {
+          "maxLength": 2000,
+          "pattern": "^https?://",
+          "title": "Url",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 200,
+          "title": "Label",
+          "type": "string"
+        },
+        "video_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{11}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Id"
+        }
+      },
+      "required": [
+        "kind",
+        "url",
+        "label"
+      ],
+      "title": "PageMediaIn",
+      "type": "object"
+    },
     "SegmentIn": {
       "properties": {
         "start": {
@@ -246,6 +371,17 @@
     },
     "transcript": {
       "$ref": "#/$defs/TranscriptIn"
+    },
+    "page": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PageIn"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

@@ -15,7 +15,8 @@
         "title": {"type": ["string", "null"]},
         "channel": {"type": ["string", "null"]},
         "duration_s": {"type": ["integer", "null"]},
-        "url": {"type": ["string", "null"]}
+        "url": {"type": ["string", "null"]},
+        "page_text": {"type": ["string", "null"], "description": "decision 19.10: the words of the page the recording was found on (background, not part of the recording)"}
       }
     },
     "transcript": {

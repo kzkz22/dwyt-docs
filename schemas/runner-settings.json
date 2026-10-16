@@ -645,7 +645,21 @@
           "readonly": false,
           "default": [
             "youtube.com",
-            "youtu.be"
+            "youtu.be",
+            "telex.hu",
+            "444.hu",
+            "hvg.hu",
+            "index.hu",
+            "indavideo.hu",
+            "videa.hu",
+            "mediaklikk.hu",
+            "megaphone.fm",
+            "podcasts.apple.com",
+            "facebook.com",
+            "fb.watch",
+            "vimeo.com",
+            "ted.com",
+            "soundcloud.com"
           ]
         },
         {

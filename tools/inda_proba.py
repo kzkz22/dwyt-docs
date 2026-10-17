@@ -31,29 +31,34 @@ def get(url, referer=None, rng=False):
 
 
 DATA = "https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData"
-ASKS = {  # how yt-dlp asks, and how the player in the browser asks (2026-10-17)
-    "yt-dlp": f"{DATA}/{HASH}/?_={int(time.time() * 1000)}",
-    "player": f"{DATA}/{HASH}/12////?https%3A%2F%2Findavideo.hu%2F&_={int(time.time() * 1000)}",
+ORIGIN = "https://embed.indavideo.hu/"  # what the browser sends as Referer (origin only)
+now = int(time.time() * 1000)
+ASKS = {  # the video data asked for in several ways; the browser's answer had http_referer = ORIGIN (2026-10-17)
+    "yt-dlp, Referer = embed page": (f"{DATA}/{HASH}/?_={now}", EMBED),
+    "yt-dlp, Referer = origin": (f"{DATA}/{HASH}/?_={now}", ORIGIN),
+    "player, Referer = embed page": (f"{DATA}/{HASH}/12////?https%3A%2F%2Findavideo.hu%2F&_={now}", EMBED),
+    "player, Referer = origin": (f"{DATA}/{HASH}/12////?https%3A%2F%2Findavideo.hu%2F&_={now}", ORIGIN),
+    "player + callback, Referer = origin": (
+        f"{DATA}/{HASH}/12////?https%3A%2F%2Findavideo.hu%2F&callback=jQuery35100_{now}&_={now + 1}", ORIGIN),
 }
-for ask, data_url in ASKS.items():
-    status, body = get(data_url, referer=EMBED)
-    print(f"\n== video data as the {ask} asks: HTTP {status}")
+for ask, (data_url, data_referer) in ASKS.items():
+    status, body = get(data_url, referer=data_referer)
+    text = body.decode("utf-8", "replace").strip()
+    if text.startswith("jQuery"):  # JSONP: strip the callback
+        text = text[text.index("(") + 1:text.rindex(")")]
+    print(f"\n== {ask}: HTTP {status}")
     if status != 200:
         continue
-    data = json.loads(body)["data"]
+    data = json.loads(text)["data"]
+    print("   http_referer:", data.get("http_referer"), " ref:", data.get("ref"))
     files, tokens = data.get("video_files") or [], data.get("filesh") or {}
     if isinstance(files, dict):
         files = list(files.values())
-    print("tokens:", tokens)
-    for raw in files:
+    for raw in files[:1]:  # the first (smallest) file is enough
         height = next((h for h in tokens if f".{h}.mp4" in raw), None)
         token = tokens.get(height)
         if not token:
             continue
-        base, _, query = raw.partition("?")
-        clean_query = "&".join(x for x in query.lstrip("?").split("&") if x)
-        for name, url in (("single ?", f"{base}?{clean_query}&token={token}"),
-                          ("as given ??&", f"{raw}&token={token}")):
-            for referer in (None, "https://embed.indavideo.hu/"):
-                code, _ = get(url, referer=referer, rng=True)
-                print(f"  {height}p  {code}  {name}{', Referer embed' if referer else ''}")
+        for referer in (None, ORIGIN):
+            code, _ = get(f"{raw}&token={token}", referer=referer, rng=True)
+            print(f"   {height}p  {code}  download{', Referer origin' if referer else ''}")

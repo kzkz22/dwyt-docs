@@ -30,33 +30,30 @@ def get(url, referer=None, rng=False):
         return exc.code, b""
 
 
-status, body = get(f"https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData/{HASH}/"
-                   f"?_={int(time.time())}", referer=EMBED)
-print("video data:", status)
-data = json.loads(body)["data"]
-files, tokens = data.get("video_files") or [], data.get("filesh") or {}
-if isinstance(files, dict):
-    files = list(files.values())
-print("files:", files)
-print("tokens:", tokens)
-
-for raw in files:
-    height = next((h for h in tokens if f".{h}.mp4" in raw), None)
-    token = tokens.get(height)
-    if not token:
+DATA = "https://amfphp.indavideo.hu/SYm0json.php/player.playerHandler.getVideoData"
+ASKS = {  # how yt-dlp asks, and how the player in the browser asks (2026-10-17)
+    "yt-dlp": f"{DATA}/{HASH}/?_={int(time.time() * 1000)}",
+    "player": f"{DATA}/{HASH}/12////?https%3A%2F%2Findavideo.hu%2F&_={int(time.time() * 1000)}",
+}
+for ask, data_url in ASKS.items():
+    status, body = get(data_url, referer=EMBED)
+    print(f"\n== video data as the {ask} asks: HTTP {status}")
+    if status != 200:
         continue
-    base, _, query = raw.partition("?")
-    clean_query = "&".join(p for p in query.lstrip("?").split("&") if p)
-    variants = {
-        "yt-dlp style (single ?)": f"{base}?{clean_query}&token={token}",
-        "as given (??&) + token": f"{raw}&token={token}",
-    }
-    for host in ("index1-hu", "magex1-hu"):
-        for name, url in list(variants.items()):
-            if host not in url:
-                variants[f"{name}, host {host}"] = url.replace("magex1-hu", host).replace("index1-hu", host)
-    print(f"\n{height}p")
-    for name, url in variants.items():
-        for referer in (None, "https://embed.indavideo.hu/"):
-            code, _ = get(url, referer=referer, rng=True)
-            print(f"  {code}  {name}{', Referer embed' if referer else ''}")
+    data = json.loads(body)["data"]
+    files, tokens = data.get("video_files") or [], data.get("filesh") or {}
+    if isinstance(files, dict):
+        files = list(files.values())
+    print("tokens:", tokens)
+    for raw in files:
+        height = next((h for h in tokens if f".{h}.mp4" in raw), None)
+        token = tokens.get(height)
+        if not token:
+            continue
+        base, _, query = raw.partition("?")
+        clean_query = "&".join(x for x in query.lstrip("?").split("&") if x)
+        for name, url in (("single ?", f"{base}?{clean_query}&token={token}"),
+                          ("as given ??&", f"{raw}&token={token}")):
+            for referer in (None, "https://embed.indavideo.hu/"):
+                code, _ = get(url, referer=referer, rng=True)
+                print(f"  {height}p  {code}  {name}{', Referer embed' if referer else ''}")
